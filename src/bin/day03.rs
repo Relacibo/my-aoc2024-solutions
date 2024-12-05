@@ -55,17 +55,28 @@ mod problem1 {
 }
 
 mod problem2 {
-    use std::iter;
+
+    thread_local! {
+        static REGEX: LazyCell<Regex> = LazyCell::new(||Regex::new(r"do(?<is_dont>n't)?\(\)").unwrap());
+    }
+
+    use std::cell::LazyCell;
+
+    use regex::Regex;
 
     use crate::problem1;
 
     pub fn solution(input: &str) -> i32 {
-        let mut instructions = input
-            .match_indices("do()")
-            .map(|(i, _)| (i + 4, true))
-            .chain(input.match_indices("don't()").map(|(i, _)| (i, false)))
-            .collect::<Vec<_>>();
-        instructions.sort_by_key(|o| o.0);
+        let instructions = REGEX.with(|regex| {
+            regex
+                .captures_iter(input)
+                .map(|c| {
+                    let i = c.get(0).unwrap().start();
+                    let should_do = c.name("is_dont").is_none();
+                    (i, should_do)
+                })
+                .collect::<Vec<_>>()
+        });
         let mut state = true;
         let v = [0]
             .into_iter()
@@ -97,7 +108,7 @@ mod problem2 {
             "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))";
 
         #[test]
-        fn test_problem1() {
+        fn test_problem2() {
             let solution = solution(TEST_INPUT);
             assert_eq!(solution, 48);
         }
