@@ -33,7 +33,7 @@ impl Input {
             }
             let &[a, b] = &line
                 .split("|")
-                .map(|s| s.parse::<i32>())
+                .map(str::parse::<i32>)
                 .collect::<Result<Vec<_>, _>>()?[..]
             else {
                 return Err(anyhow!("Input broken!"));
