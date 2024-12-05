@@ -1,7 +1,8 @@
 [package]
-name = "aoc"
+name = "my-aoc2024-solutions"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/Relacibo/my-aoc2024-solutions"
 
 [dependencies]
 anyhow = "1.0.94"

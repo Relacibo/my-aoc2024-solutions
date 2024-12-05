@@ -10,7 +10,7 @@ pub fn main() -> anyhow::Result<()> {
     let input = Input::read_from_file(Path::new("resources/day05/input.txt"))?;
     let solution = problem1::solution(&input);
     println!("Problem 1 - Solution: {solution}");
-    let solution = problem2::solution(&input);
+    let solution = problem2::solution(input);
     println!("Problem 2 - Solution: {solution}");
     Ok(())
 }
@@ -105,20 +105,20 @@ mod problem1 {
 mod problem2 {
     use std::collections::HashMap;
 
-    use crate::{problem1::is_update_order_correct, Input};
+    use crate::Input;
 
-    pub fn solution(input: &Input) -> i32 {
+    pub fn solution(input: Input) -> i32 {
         let Input { before, updates } = input;
         updates
-            .iter()
-            .filter(|u| !is_update_order_correct(before, u))
-            .map(|u| fix_update_order(before, u.clone()))
+            .into_iter()
+            .filter_map(|mut u| fix_update_order(&before, &mut u).then_some(u))
             .map(|u| u[u.len() / 2])
             .sum()
     }
 
-    fn fix_update_order(before: &HashMap<i32, Vec<i32>>, mut update: Vec<i32>) -> Vec<i32> {
+    fn fix_update_order(before: &HashMap<i32, Vec<i32>>, update: &mut Vec<i32>) -> bool {
         let mut i = 0_usize;
+        let mut was_changed = false;
         while i < update.len() {
             let page = update[i];
             let b = before
@@ -129,12 +129,13 @@ mod problem2 {
                 .collect::<Vec<_>>();
             if let Some(pos) = &update[..i].iter().position(|p| b.contains(p)) {
                 update[*pos..=i].rotate_right(1);
+                was_changed = true;
                 i = *pos + 1;
             } else {
                 i += 1;
             }
         }
-        update
+        was_changed
     }
     #[cfg(test)]
     mod test {
@@ -145,7 +146,7 @@ mod problem2 {
         #[test]
         fn test_problem2() {
             let input = Input::read_from_file(Path::new("resources/day05/test_input.txt")).unwrap();
-            let solution = super::solution(&input);
+            let solution = super::solution(input);
             assert_eq!(solution, 123)
         }
     }
