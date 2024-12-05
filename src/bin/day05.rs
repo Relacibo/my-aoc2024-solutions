@@ -129,7 +129,7 @@ mod problem2 {
                 .collect::<Vec<_>>();
             if let Some(pos) = &update[..i].iter().position(|p| b.contains(p)) {
                 update[*pos..=i].rotate_right(1);
-                i = *pos;
+                i = *pos + 1;
             } else {
                 i += 1;
             }
