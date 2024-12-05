@@ -86,20 +86,6 @@ mod problem1 {
             })
             .all(|(i, before)| !*&update[..i].iter().any(|b| before.contains(b)))
     }
-
-    #[cfg(test)]
-    mod test {
-        use std::path::Path;
-
-        use crate::Input;
-
-        #[test]
-        fn test_problem1() {
-            let input = Input::read_from_file(Path::new("resources/day05/test_input.txt")).unwrap();
-            let solution = super::solution(&input);
-            assert_eq!(solution, 143)
-        }
-    }
 }
 
 mod problem2 {
@@ -137,17 +123,30 @@ mod problem2 {
         }
         was_changed
     }
-    #[cfg(test)]
-    mod test {
-        use std::path::Path;
+}
 
-        use crate::Input;
+#[cfg(test)]
+mod test {
+    use crate::{problem1, problem2, Input};
+    use std::{borrow::Borrow, cell::LazyCell, ops::Deref, path::Path};
 
-        #[test]
-        fn test_problem2() {
-            let input = Input::read_from_file(Path::new("resources/day05/test_input.txt")).unwrap();
-            let solution = super::solution(input);
-            assert_eq!(solution, 123)
-        }
+    thread_local! {
+        static INPUT: LazyCell<Input> = LazyCell::new(||Input::read_from_file(Path::new("resources/day05/test_input.txt")).unwrap());
+    }
+
+    fn get_input() -> Input {
+        INPUT.with(|i| i.deref().clone())
+    }
+
+    #[test]
+    fn test_problem1() {
+        let solution = problem1::solution(&get_input());
+        assert_eq!(solution, 143)
+    }
+
+    #[test]
+    fn test_problem2() {
+        let solution = problem2::solution(get_input());
+        assert_eq!(solution, 123)
     }
 }
