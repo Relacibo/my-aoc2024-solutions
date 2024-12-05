@@ -17,7 +17,7 @@ pub fn main() -> anyhow::Result<()> {
 
 #[derive(Debug, Clone, Default)]
 struct Input {
-    before: HashMap<i32, Vec<i32>>,
+    update_dependents_map: HashMap<i32, Vec<i32>>,
     updates: Vec<Vec<i32>>,
 }
 
@@ -25,7 +25,7 @@ impl Input {
     fn read_from_file(path: &Path) -> anyhow::Result<Self> {
         let file = File::open(path).unwrap();
         let mut lines = BufReader::new(file).lines();
-        let mut before: HashMap<i32, Vec<i32>> = HashMap::new();
+        let mut update_dependents_map: HashMap<i32, Vec<i32>> = HashMap::new();
         let mut updates: Vec<Vec<i32>> = Vec::new();
         while let Some(Ok(line)) = lines.next() {
             if line.is_empty() {
@@ -38,7 +38,7 @@ impl Input {
             else {
                 return Err(anyhow!("Input broken!"));
             };
-            before
+            update_dependents_map
                 .entry(a)
                 .and_modify(|e| {
                     e.push(b);
@@ -55,7 +55,10 @@ impl Input {
                 .collect::<Result<Vec<_>, _>>()?;
             updates.push(v);
         }
-        Ok(Self { before, updates })
+        Ok(Self {
+            update_dependents_map,
+            updates,
+        })
     }
 }
 
@@ -65,26 +68,26 @@ mod problem1 {
     use crate::Input;
 
     pub fn solution(input: &Input) -> i32 {
-        let Input { before, updates } = input;
+        let Input {
+            update_dependents_map,
+            updates,
+        } = input;
         updates
             .iter()
-            .filter_map(|u| is_update_order_correct(before, u).then_some(u[u.len() / 2]))
+            .filter_map(|u| {
+                is_update_order_correct(update_dependents_map, u).then_some(u[u.len() / 2])
+            })
             .sum()
     }
-    pub fn is_update_order_correct(before: &HashMap<i32, Vec<i32>>, update: &[i32]) -> bool {
+    pub fn is_update_order_correct(
+        update_dependents_map: &HashMap<i32, Vec<i32>>,
+        update: &[i32],
+    ) -> bool {
         update
             .iter()
             .enumerate()
-            .map(|(i, page)| {
-                let b = before
-                    .get(page)
-                    .into_iter()
-                    .flatten()
-                    .copied()
-                    .collect::<Vec<_>>();
-                (i, b)
-            })
-            .all(|(i, before)| !*&update[..i].iter().any(|b| before.contains(b)))
+            .filter_map(|(i, page)| update_dependents_map.get(page).map(|b| (i, b)))
+            .all(|(i, dependents)| *&update[..i].iter().all(|page| !dependents.contains(page)))
     }
 }
 
@@ -94,31 +97,33 @@ mod problem2 {
     use crate::Input;
 
     pub fn solution(input: Input) -> i32 {
-        let Input { before, updates } = input;
+        let Input {
+            update_dependents_map,
+            updates,
+        } = input;
         updates
             .into_iter()
-            .filter_map(|mut u| fix_update_order(&before, &mut u).then_some(u))
-            .map(|u| u[u.len() / 2])
+            .filter_map(|mut u| {
+                fix_update_order(&update_dependents_map, &mut u).then_some(u[u.len() / 2])
+            })
             .sum()
     }
 
-    fn fix_update_order(before: &HashMap<i32, Vec<i32>>, update: &mut Vec<i32>) -> bool {
-        let mut i = 0_usize;
+    fn fix_update_order(
+        update_dependents_map: &HashMap<i32, Vec<i32>>,
+        update: &mut Vec<i32>,
+    ) -> bool {
         let mut was_changed = false;
-        while i < update.len() {
-            let page = update[i];
-            let b = before
-                .get(&page)
-                .into_iter()
-                .flatten()
-                .copied()
-                .collect::<Vec<_>>();
-            if let Some(pos) = &update[..i].iter().position(|p| b.contains(p)) {
-                update[*pos..=i].rotate_right(1);
+        for i in 0..update.len() {
+            let Some(dependents) = update_dependents_map.get(&update[i]) else {
+                continue;
+            };
+            let violation = &update[..i]
+                .iter()
+                .position(|page| dependents.contains(page));
+            if let Some(pos) = violation {
                 was_changed = true;
-                i = *pos + 1;
-            } else {
-                i += 1;
+                update[*pos..=i].rotate_right(1);
             }
         }
         was_changed
@@ -128,7 +133,7 @@ mod problem2 {
 #[cfg(test)]
 mod test {
     use crate::{problem1, problem2, Input};
-    use std::{borrow::Borrow, cell::LazyCell, ops::Deref, path::Path};
+    use std::{cell::LazyCell, ops::Deref, path::Path};
 
     thread_local! {
         static INPUT: LazyCell<Input> = LazyCell::new(||Input::read_from_file(Path::new("resources/day05/test_input.txt")).unwrap());
