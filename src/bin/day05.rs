@@ -31,11 +31,13 @@ impl Input {
             if line.is_empty() {
                 break;
             }
-            let &[a, b] = &line.split("|").collect::<Vec<_>>()[..] else {
+            let &[a, b] = &line
+                .split("|")
+                .map(|s| s.parse::<i32>())
+                .collect::<Result<Vec<_>, _>>()?[..]
+            else {
                 return Err(anyhow!("Input broken!"));
             };
-            let a = a.parse::<i32>()?;
-            let b = b.parse::<i32>()?;
             before
                 .entry(a)
                 .and_modify(|e| {
