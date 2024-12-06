@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use std::{
+    collections::HashSet,
     fmt::{Display, Write},
     fs::File,
     io::{BufRead, BufReader},
@@ -8,17 +9,17 @@ use std::{
 
 pub fn main() -> anyhow::Result<()> {
     let state = State::read_initial_from_file(Path::new("resources/day06/input.txt"))?;
-    let solution = problem1::simulate(state);
+    let solution = problem1::simulate(state.clone());
     println!("Problem 1 - Solution: {solution}");
-    // let solution = problem2::solution(input);
-    // println!("Problem 2 - Solution: {solution}");
+    let solution = problem2::find_additional_obstacle_positions(state);
+    println!("Problem 2 - Solution: {solution}");
     Ok(())
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Tile {
     NotVisited,
-    Visited,
+    Visited(HashSet<Direction>),
     Obstacle,
 }
 
@@ -40,7 +41,7 @@ impl Guard {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u32)]
 enum Direction {
     North,
@@ -71,33 +72,6 @@ impl Direction {
 }
 
 #[derive(Debug, Clone)]
-struct Board {
-    content: Vec<Tile>,
-    width: usize,
-}
-
-impl Display for Board {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let Self { content, width } = self;
-        let len = content.len() / width;
-        for (i, row) in content.chunks(*width).enumerate() {
-            for tile in row {
-                let c = match tile {
-                    Tile::NotVisited => '.',
-                    Tile::Visited => 'X',
-                    Tile::Obstacle => '#',
-                };
-                f.write_char(c)?;
-            }
-            if i < len - 1 {
-                f.write_char('\n')?;
-            }
-        }
-        Ok(())
-    }
-}
-
-#[derive(Debug, Clone)]
 struct State {
     board: Board,
     guard: Guard,
@@ -109,7 +83,7 @@ impl State {
         let lines = BufReader::new(file).lines();
         let mut width: Option<usize> = None;
         let mut guard: Option<Guard> = None;
-        let content = lines
+        let content: Vec<Tile> = lines
             .enumerate()
             .map(|(y, line)| {
                 let row = line?
@@ -131,7 +105,7 @@ impl State {
                                     x: x as isize,
                                     y: y as isize,
                                 });
-                                Tile::Visited
+                                Tile::Visited([heading].into())
                             }
                             '#' => Tile::Obstacle,
                             ch => return Err(anyhow!("Symbol not supported in input: {ch}")),
@@ -160,37 +134,114 @@ impl State {
             return Err(anyhow!("Guard not found!"));
         };
         Ok(Self {
-            board: Board { content, width },
+            board: Board {
+                height: content.len() / width,
+                content,
+                width,
+            },
             guard,
         })
     }
 }
 
+#[derive(Debug, Clone)]
+struct Board {
+    content: Vec<Tile>,
+    width: usize,
+    height: usize,
+}
+
+impl Display for Board {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let Self {
+            content,
+            width,
+            height,
+        } = self;
+        for (i, row) in content.chunks(*width).enumerate() {
+            for tile in row {
+                let c = match tile {
+                    Tile::NotVisited => '.',
+                    Tile::Visited(_) => 'X',
+                    Tile::Obstacle => '#',
+                };
+                f.write_char(c)?;
+            }
+            if i < height - 1 {
+                f.write_char('\n')?;
+            }
+        }
+        Ok(())
+    }
+}
+
 impl Board {
     fn get(&self, x: isize, y: isize) -> Option<&Tile> {
-        let Self { content, width, .. } = self;
-        if x < 0 || y < 0 {
+        if !self.is_in_bounds(x, y) {
             return None;
         }
+        let Self { content, width, .. } = self;
         let index = y as usize * width + x as usize;
         content.get(index)
     }
 
-    fn mark_visited(&mut self, x: isize, y: isize) -> anyhow::Result<()> {
+    fn get_mut(&mut self, x: isize, y: isize) -> Option<&mut Tile> {
+        if !self.is_in_bounds(x, y) {
+            return None;
+        }
         let Self { content, width, .. } = self;
-        if x < 0 || y < 0 {
-            return Err(anyhow!("Out of bounds!"));
-        }
         let index = y as usize * *width + x as usize;
-        if index > content.len() {
+        content.get_mut(index)
+    }
+
+    fn is_in_bounds(&self, x: isize, y: isize) -> bool {
+        let Self { width, height, .. } = self;
+        (0..*width as isize).contains(&x) && (0..*height as isize).contains(&y)
+    }
+
+    fn mark_visited(&mut self, x: isize, y: isize, direction: Direction) -> anyhow::Result<()> {
+        if !self.is_in_bounds(x, y) {
             return Err(anyhow!("Out of bounds!"));
         }
-        content[index] = Tile::Visited;
+        let Self { content, width, .. } = self;
+        let index = y as usize * *width + x as usize;
+        match &mut content[index] {
+            t @ Tile::NotVisited => *t = Tile::Visited([direction].into()),
+            Tile::Visited(ref mut hash_set) => {
+                hash_set.insert(direction);
+            }
+            Tile::Obstacle => {
+                return Err(anyhow!("Is obstacle!"));
+            }
+        };
+        Ok(())
+    }
+
+    fn put_obstacle(&mut self, x: isize, y: isize) -> anyhow::Result<()> {
+        if !self.is_in_bounds(x, y) {
+            return Err(anyhow!("Out of bounds!"));
+        }
+        let Self { content, width, .. } = self;
+        let index = y as usize * *width + x as usize;
+        content[index] = Tile::Obstacle;
         Ok(())
     }
 
     fn count_visited(&self) -> usize {
-        self.content.iter().filter(|t| **t == Tile::Visited).count()
+        self.content
+            .iter()
+            .filter(|t| matches!(t, Tile::Visited(_)))
+            .count()
+    }
+
+    fn get_all_visited_coordinates(&self) -> Vec<(usize, usize)> {
+        let Self { content, width, .. } = self;
+        content
+            .iter()
+            .enumerate()
+            .filter_map(|(i, t)| matches!(t, Tile::Visited(_)).then_some(i))
+            .map(|i| (i % width, i / width))
+            .collect::<Vec<_>>()
     }
 }
 mod problem1 {
@@ -201,7 +252,8 @@ mod problem1 {
             mut board,
             mut guard,
         } = state;
-        let (mut x_delta, mut y_delta) = guard.heading.get_vector();
+        let mut direction = guard.heading;
+        let (mut x_delta, mut y_delta) = direction.get_vector();
         loop {
             let Guard { x, y, .. } = guard;
             let x_next = x + x_delta;
@@ -212,14 +264,13 @@ mod problem1 {
 
             if *tile == Tile::Obstacle {
                 guard.turn_right();
-                let (x_d, y_d) = guard.heading.get_vector();
+                direction = guard.heading;
+                let (x_d, y_d) = direction.get_vector();
                 x_delta = x_d;
                 y_delta = y_d;
             } else {
                 if *tile == Tile::NotVisited {
-                    board
-                        .mark_visited(x_next, y_next)
-                        .expect("Unexpected! Out of bounds!")
+                    board.mark_visited(x_next, y_next, direction).unwrap()
                 }
                 guard.move_to(x_next, y_next);
             }
@@ -228,9 +279,72 @@ mod problem1 {
     }
 }
 
+mod problem2 {
+    use std::collections::{HashMap, HashSet};
+
+    use crate::{Direction, Guard, State, Tile};
+    pub fn find_additional_obstacle_positions(initial_state: State) -> usize {
+        let mut state = initial_state.clone();
+        let Guard {
+            x: x_initial,
+            y: y_initial,
+            ..
+        } = &state.guard;
+        let x_initial = *x_initial;
+        let y_initial = *y_initial;
+        simulate(&mut state);
+        let mut visited_coords = state.board.get_all_visited_coordinates();
+        visited_coords.retain(|(x, y)| x_initial != (*x as isize) || y_initial != (*y as isize));
+        let mut loop_counter = 0;
+        for (x, y) in visited_coords {
+            let mut state = initial_state.clone();
+            state.board.put_obstacle(x as isize, y as isize).unwrap();
+            if simulate(&mut state) {
+                loop_counter += 1;
+            }
+        }
+        loop_counter
+    }
+
+    fn simulate(state: &mut State) -> bool {
+        let State {
+            ref mut board,
+            ref mut guard,
+        } = state;
+        let mut direction = guard.heading;
+        let (mut x_delta, mut y_delta) = direction.get_vector();
+        loop {
+            let Guard { x, y, .. } = guard;
+            let x_next = *x + x_delta;
+            let y_next = *y + y_delta;
+            let Some(tile) = board.get_mut(x_next, y_next) else {
+                break;
+            };
+
+            if *tile == Tile::Obstacle {
+                guard.turn_right();
+                direction = guard.heading;
+                let (x_d, y_d) = direction.get_vector();
+                x_delta = x_d;
+                y_delta = y_d;
+            } else {
+                if *tile == Tile::NotVisited {
+                    board.mark_visited(x_next, y_next, direction).unwrap()
+                } else if let Tile::Visited(hm) = tile {
+                    if !hm.insert(direction) {
+                        return true;
+                    }
+                }
+                guard.move_to(x_next, y_next);
+            }
+        }
+        false
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use crate::{problem1, State};
+    use crate::{problem1, problem2, State};
     use std::{cell::LazyCell, ops::Deref, path::Path};
 
     thread_local! {
@@ -247,9 +361,9 @@ mod test {
         assert_eq!(solution, 41)
     }
 
-    // #[test]
-    // fn test_problem2() {
-    //     let solution = problem2::solution(get_input());
-    //     assert_eq!(solution, 123)
-    // }
+    #[test]
+    fn test_problem2() {
+        let solution = problem2::find_additional_obstacle_positions(get_input());
+        assert_eq!(solution, 6)
+    }
 }
