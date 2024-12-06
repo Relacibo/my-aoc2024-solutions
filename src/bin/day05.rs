@@ -23,7 +23,7 @@ struct Input {
 
 impl Input {
     fn read_from_file(path: &Path) -> anyhow::Result<Self> {
-        let file = File::open(path).unwrap();
+        let file = File::open(path)?;
         let mut lines = BufReader::new(file).lines();
         let mut update_dependents_map: HashMap<i32, Vec<i32>> = HashMap::new();
         let mut updates: Vec<Vec<i32>> = Vec::new();
