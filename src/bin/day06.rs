@@ -199,22 +199,23 @@ impl Board {
         (0..*width as isize).contains(&x) && (0..*height as isize).contains(&y)
     }
 
-    fn mark_visited(&mut self, x: isize, y: isize, direction: Direction) -> anyhow::Result<()> {
+    fn mark_visited(&mut self, x: isize, y: isize, direction: Direction) -> anyhow::Result<bool> {
         if !self.is_in_bounds(x, y) {
             return Err(anyhow!("Out of bounds!"));
         }
         let Self { content, width, .. } = self;
         let index = y as usize * *width + x as usize;
-        match &mut content[index] {
-            t @ Tile::NotVisited => *t = Tile::Visited([direction].into()),
-            Tile::Visited(ref mut hash_set) => {
-                hash_set.insert(direction);
+        let does_loop = match &mut content[index] {
+            t @ Tile::NotVisited => {
+                *t = Tile::Visited([direction].into());
+                false
             }
+            Tile::Visited(ref mut hash_set) => !hash_set.insert(direction),
             Tile::Obstacle => {
                 return Err(anyhow!("Is obstacle!"));
             }
         };
-        Ok(())
+        Ok(does_loop)
     }
 
     fn put_obstacle(&mut self, x: isize, y: isize) -> anyhow::Result<()> {
@@ -270,7 +271,7 @@ mod problem1 {
                 y_delta = y_d;
             } else {
                 if *tile == Tile::NotVisited {
-                    board.mark_visited(x_next, y_next, direction).unwrap()
+                    board.mark_visited(x_next, y_next, direction).unwrap();
                 }
                 guard.move_to(x_next, y_next);
             }
@@ -328,12 +329,8 @@ mod problem2 {
                 x_delta = x_d;
                 y_delta = y_d;
             } else {
-                if *tile == Tile::NotVisited {
-                    board.mark_visited(x_next, y_next, direction).unwrap()
-                } else if let Tile::Visited(hm) = tile {
-                    if !hm.insert(direction) {
-                        return true;
-                    }
+                if board.mark_visited(x_next, y_next, direction).unwrap() {
+                    return true;
                 }
                 guard.move_to(x_next, y_next);
             }
