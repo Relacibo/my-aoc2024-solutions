@@ -65,13 +65,9 @@ mod problem1 {
 
     pub fn solution(input: &Input) -> i64 {
         let Input { rows } = input;
-        let mut sum = 0;
-        for row in rows {
-            if check_row(row) {
-                sum += row.result;
-            }
-        }
-        sum
+        rows.into_iter()
+            .filter_map(|row| check_row(row).then_some(row.result))
+            .sum()
     }
 
     fn check_row(row: &InputRow) -> bool {
@@ -127,13 +123,9 @@ mod problem2 {
 
     pub fn solution(input: &Input) -> i64 {
         let Input { rows } = input;
-        let mut sum = 0;
-        for row in rows {
-            if check_row(row) {
-                sum += row.result;
-            }
-        }
-        sum
+        rows.into_iter()
+            .filter_map(|row| check_row(row).then_some(row.result))
+            .sum()
     }
 
     fn check_row(row: &InputRow) -> bool {
