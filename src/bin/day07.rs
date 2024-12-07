@@ -14,8 +14,8 @@ pub fn main() -> anyhow::Result<()> {
     )))?;
     let solution = problem1::solution(&input);
     println!("Problem 1 - Solution: {solution}");
-    // let solution = problem2::solution(input);
-    // println!("Problem 2 - Solution: {solution}");
+    let solution = problem2::solution(&input);
+    println!("Problem 2 - Solution: {solution}");
     Ok(())
 }
 
@@ -94,17 +94,12 @@ mod problem1 {
             } = elem;
             match elements_remaining {
                 [first] => {
-                    if [Mul::mul, Add::add]
-                        .into_iter()
-                        .map(|op| op(accumulator, *first as i64))
-                        .any(|res| res == wanted_result)
+                    if apply_operations(accumulator, *first as i64).any(|res| res == wanted_result)
                     {
                         return true;
                     }
                 }
-                [first, elements_remaining @ ..] => [Mul::mul, Add::add]
-                    .into_iter()
-                    .map(|op| op(accumulator, *first as i64))
+                [first, elements_remaining @ ..] => apply_operations(accumulator, *first as i64)
                     .filter(|res| *res <= wanted_result)
                     .for_each(|accumulator| {
                         stack.push(IntermediateResult {
@@ -118,14 +113,80 @@ mod problem1 {
         }
         false
     }
+
+    fn apply_operations(a: i64, b: i64) -> impl Iterator<Item = i64> {
+        [Mul::mul, Add::add].into_iter().map(move |op| op(a, b))
+    }
 }
 
 mod problem2 {
-    use crate::Input;
+    use std::ops::{Add, Mul};
 
-    pub fn solution(input: Input) -> ! {
+    use crate::{Input, InputRow};
+
+    #[derive(Debug, Clone)]
+    struct IntermediateResult<'a> {
+        wanted_result: i64,
+        accumulator: i64,
+        elements_remaining: &'a [i32],
+    }
+
+    pub fn solution(input: &Input) -> i64 {
         let Input { rows } = input;
-        todo!()
+        let mut sum = 0;
+        for row in rows {
+            if check_row(row) {
+                sum += row.result;
+            }
+        }
+        sum
+    }
+
+    fn check_row(row: &InputRow) -> bool {
+        let InputRow { result, elements } = row;
+        let [first, rest @ ..] = &elements[..] else {
+            return false;
+        };
+        let mut stack: Vec<IntermediateResult> = vec![IntermediateResult {
+            wanted_result: *result,
+            accumulator: *first as i64,
+            elements_remaining: rest,
+        }];
+        // dfs
+        while let Some(elem) = stack.pop() {
+            let IntermediateResult {
+                wanted_result,
+                accumulator,
+                elements_remaining,
+            } = elem;
+            match elements_remaining {
+                [first] => {
+                    if apply_operations(accumulator, *first as i64).any(|res| res == wanted_result)
+                    {
+                        return true;
+                    }
+                }
+                [first, elements_remaining @ ..] => apply_operations(accumulator, *first as i64)
+                    .filter(|res| *res <= wanted_result)
+                    .for_each(|accumulator| {
+                        stack.push(IntermediateResult {
+                            wanted_result,
+                            accumulator,
+                            elements_remaining,
+                        })
+                    }),
+                _ => unreachable!(),
+            }
+        }
+        false
+    }
+
+    fn apply_operations(a: i64, b: i64) -> impl Iterator<Item = i64> {
+        [Mul::mul, Add::add, |a, b| {
+            format!("{a}{b}").parse::<i64>().unwrap()
+        }]
+        .into_iter()
+        .map(move |op| op(a, b))
     }
 }
 
@@ -150,7 +211,7 @@ mod test {
 
     #[test]
     fn test_problem2() {
-        let solution = problem2::solution(get_input());
-        // assert_eq!(solution, 0)
+        let solution = problem2::solution(&get_input());
+        assert_eq!(solution, 11387)
     }
 }
