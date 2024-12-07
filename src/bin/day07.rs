@@ -59,7 +59,6 @@ mod problem1 {
 
     #[derive(Debug, Clone)]
     struct IntermediateResult<'a> {
-        wanted_result: i64,
         accumulator: i64,
         elements_remaining: &'a [i32],
     }
@@ -81,29 +80,25 @@ mod problem1 {
             return false;
         };
         let mut stack: Vec<IntermediateResult> = vec![IntermediateResult {
-            wanted_result: *result,
             accumulator: *first as i64,
             elements_remaining: rest,
         }];
         // dfs
         while let Some(elem) = stack.pop() {
             let IntermediateResult {
-                wanted_result,
                 accumulator,
                 elements_remaining,
             } = elem;
             match elements_remaining {
                 [first] => {
-                    if apply_operations(accumulator, *first as i64).any(|res| res == wanted_result)
-                    {
+                    if apply_operations(accumulator, *first as i64).any(|res| res == *result) {
                         return true;
                     }
                 }
                 [first, elements_remaining @ ..] => apply_operations(accumulator, *first as i64)
-                    .filter(|res| *res <= wanted_result)
+                    .filter(|res| *res <= *result)
                     .for_each(|accumulator| {
                         stack.push(IntermediateResult {
-                            wanted_result,
                             accumulator,
                             elements_remaining,
                         })
@@ -126,7 +121,6 @@ mod problem2 {
 
     #[derive(Debug, Clone)]
     struct IntermediateResult<'a> {
-        wanted_result: i64,
         accumulator: i64,
         elements_remaining: &'a [i32],
     }
@@ -148,29 +142,25 @@ mod problem2 {
             return false;
         };
         let mut stack: Vec<IntermediateResult> = vec![IntermediateResult {
-            wanted_result: *result,
             accumulator: *first as i64,
             elements_remaining: rest,
         }];
         // dfs
         while let Some(elem) = stack.pop() {
             let IntermediateResult {
-                wanted_result,
                 accumulator,
                 elements_remaining,
             } = elem;
             match elements_remaining {
                 [first] => {
-                    if apply_operations(accumulator, *first as i64).any(|res| res == wanted_result)
-                    {
+                    if apply_operations(accumulator, *first as i64).any(|res| res == *result) {
                         return true;
                     }
                 }
                 [first, elements_remaining @ ..] => apply_operations(accumulator, *first as i64)
-                    .filter(|res| *res <= wanted_result)
+                    .filter(|res| *res <= *result)
                     .for_each(|accumulator| {
                         stack.push(IntermediateResult {
-                            wanted_result,
                             accumulator,
                             elements_remaining,
                         })
