@@ -37,7 +37,7 @@ impl Input {
             .lines()
             .map(|line| -> anyhow::Result<_> {
                 let line = line?;
-                let [result, rest] = line.split(": ").take(2).collect::<Vec<_>>()[..] else {
+                let [result, rest] = line.split(": ").collect::<Vec<_>>()[..] else {
                     return Err(anyhow!("Wrong line format!"));
                 };
                 let result = result.parse()?;
