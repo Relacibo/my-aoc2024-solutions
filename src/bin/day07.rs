@@ -58,9 +58,9 @@ mod problem1 {
     use crate::{Input, InputRow};
 
     #[derive(Debug, Clone)]
-    struct IntermediateResult<'a> {
+    struct IntermediateResult {
         accumulator: i64,
-        elements_remaining: &'a [i32],
+        rest_index: usize,
     }
 
     pub fn solution(input: &Input) -> i64 {
@@ -72,31 +72,31 @@ mod problem1 {
 
     fn check_row(row: &InputRow) -> bool {
         let InputRow { result, elements } = row;
-        let [first, rest @ ..] = &elements[..] else {
+        let [first, ..] = &elements[..] else {
             return false;
         };
         let mut stack: Vec<IntermediateResult> = vec![IntermediateResult {
             accumulator: *first as i64,
-            elements_remaining: rest,
+            rest_index: 1,
         }];
         // dfs
         while let Some(elem) = stack.pop() {
             let IntermediateResult {
                 accumulator,
-                elements_remaining,
+                rest_index,
             } = elem;
-            match elements_remaining {
+            match &elements[rest_index..] {
                 [first] => {
                     if apply_operations(accumulator, *first as i64).any(|res| res == *result) {
                         return true;
                     }
                 }
-                [first, elements_remaining @ ..] => apply_operations(accumulator, *first as i64)
+                [first, ..] => apply_operations(accumulator, *first as i64)
                     .filter(|res| *res <= *result)
                     .for_each(|accumulator| {
                         stack.push(IntermediateResult {
                             accumulator,
-                            elements_remaining,
+                            rest_index: rest_index + 1,
                         })
                     }),
                 _ => unreachable!(),
@@ -116,9 +116,9 @@ mod problem2 {
     use crate::{Input, InputRow};
 
     #[derive(Debug, Clone)]
-    struct IntermediateResult<'a> {
+    struct IntermediateResult {
         accumulator: i64,
-        elements_remaining: &'a [i32],
+        rest_index: usize,
     }
 
     pub fn solution(input: &Input) -> i64 {
@@ -130,31 +130,31 @@ mod problem2 {
 
     fn check_row(row: &InputRow) -> bool {
         let InputRow { result, elements } = row;
-        let [first, rest @ ..] = &elements[..] else {
+        let [first, ..] = &elements[..] else {
             return false;
         };
         let mut stack: Vec<IntermediateResult> = vec![IntermediateResult {
             accumulator: *first as i64,
-            elements_remaining: rest,
+            rest_index: 1,
         }];
         // dfs
         while let Some(elem) = stack.pop() {
             let IntermediateResult {
                 accumulator,
-                elements_remaining,
+                rest_index,
             } = elem;
-            match elements_remaining {
+            match &elements[rest_index..] {
                 [first] => {
                     if apply_operations(accumulator, *first as i64).any(|res| res == *result) {
                         return true;
                     }
                 }
-                [first, elements_remaining @ ..] => apply_operations(accumulator, *first as i64)
+                [first, ..] => apply_operations(accumulator, *first as i64)
                     .filter(|res| *res <= *result)
                     .for_each(|accumulator| {
                         stack.push(IntermediateResult {
                             accumulator,
-                            elements_remaining,
+                            rest_index: rest_index + 1,
                         })
                     }),
                 _ => unreachable!(),
