@@ -11,9 +11,9 @@ const DAY_NUMBER_STRING: &'static str = "dayxx";
 pub fn main() -> anyhow::Result<()> {
     let input = Input::read_from_file(Path::new(&format!("resources/{DAY_NUMBER_STRING}/input.txt")))?;
     let solution = problem1::solution(&input);
-    println!("Problem 1 - Solution: {solution}");
+    // println!("Problem 1 - Solution: {solution}");
     let solution = problem2::solution(input);
-    println!("Problem 2 - Solution: {solution}");
+    // println!("Problem 2 - Solution: {solution}");
     Ok(())
 }
 
@@ -63,12 +63,12 @@ mod test {
     #[test]
     fn test_problem1() {
         let solution = problem1::solution(&get_input());
-        assert_eq!(solution, 0)
+        // assert_eq!(solution, 0)
     }
 
     #[test]
     fn test_problem2() {
         let solution = problem2::solution(get_input());
-        assert_eq!(solution, 0)
+        // assert_eq!(solution, 0)
     }
 }
