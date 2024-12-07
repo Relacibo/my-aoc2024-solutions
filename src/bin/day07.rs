@@ -183,7 +183,7 @@ mod problem2 {
 
     fn apply_operations(a: i64, b: i64) -> impl Iterator<Item = i64> {
         [
-            |a, b| format!("{a}{b}").parse::<i64>().unwrap(),
+            |a, b: i64| a * (10_u64.pow(b.checked_ilog10().unwrap_or(0) + 1)) as i64 + b,
             Mul::mul,
             Add::add,
         ]
