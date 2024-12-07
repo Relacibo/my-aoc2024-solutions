@@ -7,7 +7,7 @@ fn main() {
     let file = File::open("resources/day02/input.txt").unwrap();
     let input: Vec<_> = BufReader::new(file)
         .lines()
-        .flatten()
+        .map_while(Result::ok)
         .map(|line| {
             line.split_whitespace()
                 .flat_map(str::parse::<i32>)
@@ -39,7 +39,7 @@ mod problem1 {
             .iter()
             .copied()
             .map(i32::abs)
-            .all(|i| i >= 1 && i <= 3)
+            .all(|i| (1..=3).contains(&i))
         {
             return false;
         }
@@ -81,7 +81,7 @@ mod problem2 {
             .copied()
             .map(i32::abs)
             .enumerate()
-            .filter_map(|(i, num)| (num < 1 || num > 3).then_some(i))
+            .filter_map(|(i, num)| (!(1..=3).contains(&num)).then_some(i))
             .collect::<Vec<_>>();
         if difference_violations.len() > 2 {
             return false;
@@ -98,11 +98,11 @@ mod problem2 {
             return false;
         }
 
-        if difference_violations.len() == 0 && (negative.len() == 0 || positive.len() == 0) {
+        if difference_violations.is_empty() && (negative.is_empty() || positive.is_empty()) {
             return true;
         }
 
-        if difference_violations.len() > 0 {
+        if !difference_violations.is_empty() {
             dbg!(&param);
             dbg!(&difference_violations);
             dbg!(&negative);
@@ -127,12 +127,12 @@ mod problem2 {
         }
         dbg!(&param);
 
-        return false;
+        false
     }
 
     fn can_violation_be_fixed(param: &[i32], violations: &[usize]) -> bool {
-        match violations {
-            &[i1] => {
+        match *violations {
+            [i1] => {
                 let mut v = param.to_vec();
                 v.remove(i1);
                 if problem1::is_safe(&v) {
@@ -140,15 +140,15 @@ mod problem2 {
                 }
                 let mut v = param.to_vec();
                 v.remove(i1 + 1);
-                return problem1::is_safe(&v);
+                problem1::is_safe(&v)
             }
-            &[i1, i2] => {
+            [i1, i2] => {
                 if i2 != i1 + 1 {
                     return false;
                 }
                 let mut v = param.to_vec();
                 v.remove(i1 + 1);
-                return problem1::is_safe(&v);
+                problem1::is_safe(&v)
             }
             _ => panic!(),
         }

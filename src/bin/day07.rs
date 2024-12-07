@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::anyhow;
 
-const DAY_NUMBER_STRING: &'static str = "day07";
+const DAY_NUMBER_STRING: &str = "day07";
 
 pub fn main() -> anyhow::Result<()> {
     let input = Input::read_from_file(Path::new(&format!(
@@ -65,7 +65,7 @@ mod problem1 {
 
     pub fn solution(input: &Input) -> i64 {
         let Input { rows } = input;
-        rows.into_iter()
+        rows.iter()
             .filter_map(|row| check_row(row).then_some(row.result))
             .sum()
     }
@@ -123,7 +123,7 @@ mod problem2 {
 
     pub fn solution(input: &Input) -> i64 {
         let Input { rows } = input;
-        rows.into_iter()
+        rows.iter()
             .filter_map(|row| check_row(row).then_some(row.result))
             .sum()
     }

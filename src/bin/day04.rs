@@ -41,7 +41,7 @@ mod problem1 {
         width: usize,
         height: usize,
     ) -> Box<dyn Iterator<Item = Box<dyn Iterator<Item = (usize, usize)>>>> {
-        Box::new((0..height).into_iter().map(move |y| {
+        Box::new((0..height).map(move |y| {
             Box::new((0..width).map(move |x| (x, y))) as Box<dyn Iterator<Item = (usize, usize)>>
         }))
     }
@@ -50,7 +50,7 @@ mod problem1 {
         width: usize,
         height: usize,
     ) -> Box<dyn Iterator<Item = Box<dyn Iterator<Item = (usize, usize)>>>> {
-        Box::new((0..width).into_iter().map(move |x| {
+        Box::new((0..width).map(move |x| {
             Box::new((0..height).map(move |y| (x, y))) as Box<dyn Iterator<Item = (usize, usize)>>
         }))
     }
@@ -62,7 +62,7 @@ mod problem1 {
         let mut x_start = 0;
         let mut y_start = height - WORD_SIZE;
         Box::new(iter::from_fn(move || {
-            if x_start + WORD_SIZE - 1 >= width {
+            if x_start + WORD_SIZE > width {
                 return None;
             }
             let mut x = x_start;
@@ -92,7 +92,7 @@ mod problem1 {
         let mut x_start = 0;
         let mut y_start = WORD_SIZE - 1;
         Box::new(iter::from_fn(move || {
-            if x_start + WORD_SIZE - 1 >= width {
+            if x_start + WORD_SIZE > width {
                 return None;
             }
             let mut x = x_start;
@@ -271,12 +271,7 @@ mod problem2 {
         let height = input.len();
         let width = input[0].len();
         (0..(width - XMAS_WIDTH + 1))
-            .into_iter()
-            .flat_map(|x| {
-                (0..(height - XMAS_HEIGHT + 1))
-                    .into_iter()
-                    .map(move |y| (x, y))
-            })
+            .flat_map(|x| (0..(height - XMAS_HEIGHT + 1)).map(move |y| (x, y)))
             .filter(|(x, y)| {
                 if input[*y + 1][*x + 1] != 'A' {
                     return false;

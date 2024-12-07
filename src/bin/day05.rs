@@ -87,7 +87,7 @@ mod problem1 {
             .iter()
             .enumerate()
             .filter_map(|(i, page)| update_dependents_map.get(page).map(|b| (i, b)))
-            .all(|(i, dependents)| *&update[..i].iter().all(|page| !dependents.contains(page)))
+            .all(|(i, dependents)| update[..i].iter().all(|page| !dependents.contains(page)))
     }
 }
 
@@ -111,7 +111,7 @@ mod problem2 {
 
     fn fix_update_order(
         update_dependents_map: &HashMap<i32, Vec<i32>>,
-        update: &mut Vec<i32>,
+        update: &mut [i32],
     ) -> bool {
         let mut was_changed = false;
         for i in 0..update.len() {

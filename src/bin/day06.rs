@@ -281,9 +281,8 @@ mod problem1 {
 }
 
 mod problem2 {
-    use std::collections::{HashMap, HashSet};
 
-    use crate::{Direction, Guard, State, Tile};
+    use crate::{Guard, State, Tile};
     pub fn find_additional_obstacle_positions(initial_state: State) -> usize {
         let mut state = initial_state.clone();
         let Guard {

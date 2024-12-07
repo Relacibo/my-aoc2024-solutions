@@ -1,7 +1,5 @@
 use std::{fs, path::Path};
 
-use regex::Regex;
-
 pub fn main() -> anyhow::Result<()> {
     let input = fs::read_to_string(Path::new("resources/day03/input.txt"))?;
 

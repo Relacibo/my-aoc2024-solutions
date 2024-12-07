@@ -7,7 +7,7 @@ pub fn main() {
     let file = File::open("resources/day01/input.txt").unwrap();
     let (mut input_a, mut input_b): (Vec<_>, Vec<_>) = BufReader::new(file)
         .lines()
-        .flatten()
+        .map_while(Result::ok)
         .flat_map(|line| {
             let v = line
                 .split_whitespace()
@@ -32,7 +32,7 @@ pub fn main() {
 mod problem1 {
     pub fn get_distance(sorted_input_a: &[i64], sorted_input_b: &[i64]) -> i64 {
         sorted_input_a
-            .into_iter()
+            .iter()
             .zip(sorted_input_b)
             .map(|(a, b)| (a - b).abs())
             .sum()
