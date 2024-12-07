@@ -182,9 +182,11 @@ mod problem2 {
     }
 
     fn apply_operations(a: i64, b: i64) -> impl Iterator<Item = i64> {
-        [Mul::mul, Add::add, |a, b| {
-            format!("{a}{b}").parse::<i64>().unwrap()
-        }]
+        [
+            |a, b| format!("{a}{b}").parse::<i64>().unwrap(),
+            Mul::mul,
+            Add::add,
+        ]
         .into_iter()
         .map(move |op| op(a, b))
     }
