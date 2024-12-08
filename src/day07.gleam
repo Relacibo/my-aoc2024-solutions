@@ -23,7 +23,7 @@ pub fn run_solutions() -> Result(Nil, String) {
   |> io.println()
   solution2(input)
   |> int.to_string
-  |> string.append("Problem 1 - Solution: ", _)
+  |> string.append("Problem 2 - Solution: ", _)
   |> io.println()
   Ok(Nil)
 }
