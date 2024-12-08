@@ -1,4 +1,5 @@
 import gleam/bit_array
+import gleam/dict
 import gleam/int
 import gleam/io
 import gleam/list
@@ -32,6 +33,16 @@ pub fn run_solutions() -> Result(Nil, String) {
 }
 
 pub fn solution1(input: Input) -> Int {
+  let Input(content) = input
+  content
+  |> list.map(fn(t) {
+    let #(id, c) = t
+    dict.new()
+    |> dict.insert(id, [c])
+  })
+  |> list.reduce(fn(d1, d2) {
+    dict.combine(d1, d2, fn(l1, l2) { [l1, l2] |> list.flatten })
+  })
   todo
 }
 
@@ -54,7 +65,7 @@ pub fn read_input(path: String) -> Result(Input, String) {
       |> list.index_map(fn(g, x) {
         case g {
           "." -> []
-          id -> [AntennaCoords(id, x, y)]
+          id -> [#(id, Coords(x, y))]
         }
       })
       |> list.flatten
@@ -64,9 +75,9 @@ pub fn read_input(path: String) -> Result(Input, String) {
 }
 
 pub type Input {
-  Input(coords: List(AntennaCoords))
+  Input(List(#(String, Coords)))
 }
 
-pub type AntennaCoords {
-  AntennaCoords(id: String, x: Int, y: Int)
+pub type Coords {
+  Coords(x: Int, y: Int)
 }
