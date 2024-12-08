@@ -2,7 +2,7 @@ import dayxx.{day_number_string, solution1, solution2}
 import startest.{describe, it}
 import startest/expect
 
-pub fn day08_tests() {
+pub fn day08_tests_() {
   let assert Ok(input) =
     day08.read_input("resources/" <> day_number_string <> "/test_input.txt")
   describe(day_number_string, [
