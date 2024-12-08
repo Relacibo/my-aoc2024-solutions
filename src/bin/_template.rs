@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::anyhow;
 
-const DAY_NUMBER_STRING: &'static str = "dayxx";
+const DAY_NUMBER_STRING: & str = "dayxx";
 
 pub fn main() -> anyhow::Result<()> {
     let input = Input::read_from_file(Path::new(&format!("resources/{DAY_NUMBER_STRING}/input.txt")))?;
