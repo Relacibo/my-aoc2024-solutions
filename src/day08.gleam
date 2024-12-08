@@ -1,6 +1,8 @@
+import gleam/bit_array
 import gleam/int
 import gleam/io
 import gleam/list
+import gleam/option.{None, Some}
 import gleam/result
 import gleam/string
 import simplifile
@@ -29,8 +31,12 @@ pub fn run_solutions() -> Result(Nil, String) {
   Ok(Nil)
 }
 
-pub type Input {
-  Input
+pub fn solution1(input: Input) -> Int {
+  todo
+}
+
+pub fn solution2(input: Input) -> Int {
+  todo
 }
 
 pub fn read_input(path: String) -> Result(Input, String) {
@@ -38,16 +44,29 @@ pub fn read_input(path: String) -> Result(Input, String) {
     simplifile.read(path)
     |> result.map_error(fn(_) { "Could not read file" }),
   )
-  content
-  |> string.split("\n")
-  |> list.filter(fn(s) { !string.is_empty(s) })
-  todo
+  let content =
+    content
+    |> string.split("\n")
+    |> list.filter(fn(s) { !string.is_empty(s) })
+    |> list.index_map(fn(row, y) {
+      row
+      |> string.to_graphemes
+      |> list.index_map(fn(g, x) {
+        case g {
+          "." -> []
+          id -> [AntennaCoords(id, x, y)]
+        }
+      })
+      |> list.flatten
+    })
+    |> list.flatten
+  Ok(Input(content))
 }
 
-pub fn solution1(input: Input) -> Int {
-  todo
+pub type Input {
+  Input(coords: List(AntennaCoords))
 }
 
-pub fn solution2(input: Input) -> Int {
-  todo
+pub type AntennaCoords {
+  AntennaCoords(id: String, x: Int, y: Int)
 }
