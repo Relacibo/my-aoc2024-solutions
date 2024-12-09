@@ -2,7 +2,6 @@ import gleam/dict
 import gleam/int
 import gleam/io
 import gleam/list
-import gleam/option.{None, Some}
 import gleam/result
 import gleam/set
 import gleam/string
@@ -80,10 +79,9 @@ fn get_antinodes(
   let Coords(x1, y1) = node1
   let Coords(x2, y2) = node2
   case problem {
-    Problem1 -> [
-      Coords(2 * x1 - x2, 2 * y1 - y2),
-      Coords(2 * x2 - x1, 2 * y2 - y1),
-    ]
+    Problem1 ->
+      [Coords(2 * x1 - x2, 2 * y1 - y2), Coords(2 * x2 - x1, 2 * y2 - y1)]
+      |> list.filter(is_in_bound(_, width, height))
     Problem2 ->
       [node1, node2]
       |> list.permutations
@@ -92,7 +90,6 @@ fn get_antinodes(
         extrapolate([node1], subtract_coords(node2, node1), width, height)
       })
   }
-  |> list.filter(is_in_bound(_, width, height))
 }
 
 fn extrapolate(
