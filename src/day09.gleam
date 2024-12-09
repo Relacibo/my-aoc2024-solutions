@@ -23,11 +23,99 @@ pub fn run_solutions() -> Result(Nil, String) {
   |> int.to_string
   |> string.append("Problem 1 - Solution: ", _)
   |> io.println()
-  // solution2(input)
-  // |> int.to_string
-  // |> string.append("Problem 2 - Solution: ", _)
-  // |> io.println()
+  solution2(input)
+  |> int.to_string
+  |> string.append("Problem 2 - Solution: ", _)
+  |> io.println()
   Ok(Nil)
+}
+
+pub fn solution1(input: Input) -> Int {
+  let Input(file_blocks) = input
+  file_blocks
+  |> list.map(fn(t) {
+    let #(file, _) = t
+    file
+  })
+  |> list.reverse
+  |> fill_free_space(
+    file_blocks
+      |> list.flat_map(fn(t) {
+        let #(file, free_space) = t
+        [FileBlocks(file), FreeSpaceBlocks(free_space)]
+      }),
+    [],
+  )
+  |> list.reverse
+  |> list.map(FileBlocks)
+  |> calculate_checksum
+}
+
+pub fn solution2(input: Input) -> Int {
+  todo
+}
+
+fn fill_free_space(
+  rev: List(File),
+  disk: List(DiskBlocks),
+  acc: List(File),
+) -> List(File) {
+  case rev, disk {
+    // stop condition
+    [File(id_rev, _) as file_rev, ..], [FileBlocks(File(id, _)), ..]
+      if id >= id_rev
+    -> {
+      [file_rev, ..acc]
+    }
+
+    // move files to the accumulator
+    _, [FileBlocks(file), ..disk_rest] ->
+      fill_free_space(rev, disk_rest, [file, ..acc])
+
+    // Ignore zero sized free space
+    _, [FreeSpaceBlocks(FreeSpace(free_space)), ..disk_rest] if free_space <= 0 ->
+      fill_free_space(rev, disk_rest, acc)
+
+    [File(id, block_size) as file, ..rest_rev],
+      [FreeSpaceBlocks(FreeSpace(size_free)), ..disk_rest]
+    ->
+      case int.compare(block_size, size_free) {
+        order.Eq -> fill_free_space(rest_rev, disk_rest, [file, ..acc])
+        order.Lt ->
+          fill_free_space(
+            rest_rev,
+            [FreeSpaceBlocks(FreeSpace(size_free - block_size)), ..disk_rest],
+            [file, ..acc],
+          )
+        order.Gt ->
+          fill_free_space(
+            [File(id, block_size - size_free), ..rest_rev],
+            disk_rest,
+            [File(id, size_free), ..acc],
+          )
+      }
+    _, _ -> panic
+  }
+}
+
+pub fn calculate_checksum(l: List(DiskBlocks)) -> Int {
+  let #(_, sum) =
+    l
+    |> list.fold(#(0, 0), fn(acc, block) {
+      let #(lower, sum) = acc
+      case block {
+        FileBlocks(File(id, block_size)) -> {
+          let upper = lower + block_size
+          // id * (small gauss(upper - 1) - small gauss(lower - 1))
+          let elem = id * { upper * { upper - 1 } - lower * { lower - 1 } } / 2
+          #(lower + block_size, sum + elem)
+        }
+        FreeSpaceBlocks(FreeSpace(free_space)) -> {
+          #(lower + free_space, sum)
+        }
+      }
+    })
+  sum
 }
 
 pub type Input {
@@ -76,92 +164,4 @@ pub fn read_input(path: String) -> Result(Input, String) {
   |> list.flatten
   |> Input
   |> Ok
-}
-
-pub fn solution1(input: Input) -> Int {
-  let Input(file_blocks) = input
-  file_blocks
-  |> list.map(fn(t) {
-    let #(file, _) = t
-    file
-  })
-  |> list.reverse
-  |> fill_free_space(
-    file_blocks
-      |> list.flat_map(fn(t) {
-        let #(file, free_space) = t
-        [FileBlocks(file), FreeSpaceBlocks(free_space)]
-      }),
-    [],
-  )
-  |> list.reverse
-  |> list.map(FileBlocks)
-  |> calculate_checksum
-}
-
-pub fn calculate_checksum(l: List(DiskBlocks)) -> Int {
-  let #(_, sum) =
-    l
-    |> list.fold(#(0, 0), fn(acc, block) {
-      let #(lower, sum) = acc
-      case block {
-        FileBlocks(File(id, block_size)) -> {
-          let upper = lower + block_size
-          // id * (small gauss(upper - 1) - small gauss(lower - 1))
-          let elem = id * { upper * { upper - 1 } - lower * { lower - 1 } } / 2
-          #(lower + block_size, sum + elem)
-        }
-        FreeSpaceBlocks(FreeSpace(free_space)) -> {
-          #(lower + free_space, sum)
-        }
-      }
-    })
-  sum
-}
-
-fn fill_free_space(
-  rev: List(File),
-  disk: List(DiskBlocks),
-  acc: List(File),
-) -> List(File) {
-  case rev, disk {
-    // stop condition
-    [File(id_rev, _) as file_rev, ..], [FileBlocks(File(id, _)), ..]
-      if id >= id_rev
-    -> {
-      [file_rev, ..acc]
-    }
-
-    // move files to the accumulator
-    _, [FileBlocks(file), ..disk_rest] ->
-      fill_free_space(rev, disk_rest, [file, ..acc])
-
-    // Ignore zero sized free space
-    _, [FreeSpaceBlocks(FreeSpace(free_space)), ..disk_rest] if free_space <= 0 ->
-      fill_free_space(rev, disk_rest, acc)
-
-    [File(id, block_size) as file, ..rest_rev],
-      [FreeSpaceBlocks(FreeSpace(size_free)), ..disk_rest]
-    ->
-      case int.compare(block_size, size_free) {
-        order.Eq -> fill_free_space(rest_rev, disk_rest, [file, ..acc])
-        order.Lt ->
-          fill_free_space(
-            rest_rev,
-            [FreeSpaceBlocks(FreeSpace(size_free - block_size)), ..disk_rest],
-            [file, ..acc],
-          )
-        order.Gt ->
-          fill_free_space(
-            [File(id, block_size - size_free), ..rest_rev],
-            disk_rest,
-            [File(id, size_free), ..acc],
-          )
-      }
-    _, _ -> panic
-  }
-}
-
-pub fn solution2(input: Input) -> Int {
-  todo
 }

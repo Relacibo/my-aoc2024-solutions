@@ -12,7 +12,7 @@ pub fn day09_tests() {
     }),
     it("solution 2", fn() {
       solution2(input)
-      |> expect.to_equal(14)
+      |> expect.to_equal(2858)
     }),
   ])
 }
