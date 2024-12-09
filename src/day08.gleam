@@ -138,8 +138,7 @@ pub fn read_input(path: String) -> Result(Input, String) {
     |> list.length
 
   use width <- result.try(
-    rows
-    |> list.first()
+    list.first(rows)
     |> result.map(string.length)
     |> result.map_error(fn(_) { "Row empty!" }),
   )

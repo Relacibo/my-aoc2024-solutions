@@ -56,14 +56,7 @@ mod problem2 {
     use crate::problem1;
 
     pub fn count_safe(input: &[Vec<i32>]) -> i32 {
-        input
-            .iter()
-            .filter(|v| {
-                let is_safe = is_safe(v);
-                dbg!(is_safe);
-                is_safe
-            })
-            .count() as i32
+        input.iter().filter(|v| is_safe(v)).count() as i32
     }
 
     pub fn is_safe(param: &[i32]) -> bool {
@@ -103,31 +96,15 @@ mod problem2 {
         }
 
         if !difference_violations.is_empty() {
-            dbg!(&param);
-            dbg!(&difference_violations);
-            dbg!(&negative);
-            dbg!(&positive);
             return can_violation_be_fixed(param, &difference_violations);
         }
-
-        if negative.len() <= 2 {
-            dbg!(&param);
-            dbg!(&negative);
-            if can_violation_be_fixed(param, &negative) {
-                return true;
-            }
-        }
-
-        if positive.len() <= 2 {
-            dbg!(&param);
-            dbg!(&positive);
-            if can_violation_be_fixed(param, &positive) {
-                return true;
-            }
-        }
-        dbg!(&param);
-
-        false
+        [
+            (negative.len() <= 2).then_some(negative),
+            (positive.len() <= 2).then_some(positive),
+        ]
+        .into_iter()
+        .flatten()
+        .any(|v| can_violation_be_fixed(param, &v))
     }
 
     fn can_violation_be_fixed(param: &[i32], violations: &[usize]) -> bool {
