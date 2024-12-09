@@ -80,29 +80,41 @@ pub fn read_input(path: String) -> Result(Input, String) {
 
 pub fn solution1(input: Input) -> Int {
   let Input(file_blocks) = input
-  let #(_, sum) =
+  file_blocks
+  |> list.map(fn(t) {
+    let #(file, _) = t
+    file
+  })
+  |> list.reverse
+  |> fill_free_space(
     file_blocks
-    |> list.map(fn(t) {
-      let #(file, _) = t
-      file
-    })
-    |> list.reverse
-    |> fill_free_space(
-      file_blocks
-        |> list.flat_map(fn(t) {
-          let #(file, free_space) = t
-          [FileBlocks(file), FreeSpaceBlocks(free_space)]
-        }),
-      [],
-    )
-    |> list.reverse
-    |> list.fold(#(0, 0), fn(acc, file) {
-      let File(id, block_size) = file
+      |> list.flat_map(fn(t) {
+        let #(file, free_space) = t
+        [FileBlocks(file), FreeSpaceBlocks(free_space)]
+      }),
+    [],
+  )
+  |> list.reverse
+  |> list.map(FileBlocks)
+  |> calculate_checksum
+}
+
+pub fn calculate_checksum(l: List(DiskBlocks)) -> Int {
+  let #(_, sum) =
+    l
+    |> list.fold(#(0, 0), fn(acc, block) {
       let #(lower, sum) = acc
-      let upper = lower + block_size
-      // id * (small gauss(upper - 1) - small gauss(lower - 1))
-      let elem = id * { upper * { upper - 1 } - lower * { lower - 1 } } / 2
-      #(lower + block_size, sum + elem)
+      case block {
+        FileBlocks(File(id, block_size)) -> {
+          let upper = lower + block_size
+          // id * (small gauss(upper - 1) - small gauss(lower - 1))
+          let elem = id * { upper * { upper - 1 } - lower * { lower - 1 } } / 2
+          #(lower + block_size, sum + elem)
+        }
+        FreeSpaceBlocks(FreeSpace(free_space)) -> {
+          #(lower + free_space, sum)
+        }
+      }
     })
   sum
 }
