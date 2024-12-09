@@ -108,15 +108,17 @@ pub fn solution2(input: Input) -> Int {
   |> calculate_checksum
 }
 
-fn find_free_spaces_solution2(
+pub fn find_free_spaces_solution2(
   rev: List(File),
   free_space_map: List(#(Int, List(Int))),
   files: Dict(Int, List(File)),
 ) -> List(DiskBlocks) {
+  "--" |> io.debug
+  rev |> io.debug
+  free_space_map |> io.debug
+  files |> io.debug
   case rev {
     [] -> {
-      io.debug(free_space_map)
-      io.debug(files)
       files
       |> dict.map_values(fn(_, v) { v |> list.map(FileBlocks) })
       |> dict.combine(
@@ -132,7 +134,7 @@ fn find_free_spaces_solution2(
           })
           |> dict.from_list
           |> dict.map_values(fn(_, size) { [FreeSpaceBlocks(FreeSpace(size))] }),
-        fn(l1, l2) { [l1, l2] |> list.flatten },
+        fn(l1, l2) { [l2, l1] |> list.flatten },
       )
       |> dict.to_list
       |> list.sort(fn(a, b) {
@@ -144,10 +146,26 @@ fn find_free_spaces_solution2(
         let #(_, entries) = t
         entries |> list.reverse
       })
-      |> io.debug
     }
     [File(id_rev, size_rev) as file_rev, ..rest_rev] -> {
-      case use_first_free_space(free_space_map, [], id_rev, size_rev) {
+      case
+        use_first_free_space(
+          free_space_map,
+          [],
+          [
+            rest_rev
+              |> list.map(fn(f) {
+                let File(id, _) = f
+                id
+              }),
+            files
+              |> dict.keys,
+          ]
+            |> list.flatten,
+          id_rev,
+          size_rev,
+        )
+      {
         Ok(#(free_space_map_new, index)) ->
           find_free_spaces_solution2(
             rest_rev,
@@ -176,7 +194,7 @@ fn find_free_spaces_solution2(
   }
 }
 
-fn create_free_space_to_index_map(
+pub fn create_free_space_to_index_map(
   disk: List(FreeSpace),
 ) -> List(#(Int, List(Int))) {
   disk
@@ -197,43 +215,112 @@ fn create_free_space_to_index_map(
   })
 }
 
-fn use_first_free_space(
+pub fn use_first_free_space(
   to_be_searched: List(#(Int, List(Int))),
   searched: List(#(Int, List(Int))),
-  max_index_wanted: Int,
+  used_indices_without_elem: List(Int),
+  index_move_from: Int,
   size_wanted: Int,
 ) -> Result(#(List(#(Int, List(Int))), Int), Nil) {
   case to_be_searched {
     [] -> Error(Nil)
     [#(size, [first, ..]) as entry, ..rest]
-      if size < size_wanted || first > max_index_wanted
+      if size < size_wanted || first > index_move_from
     ->
       use_first_free_space(
         rest,
         [entry, ..searched],
-        max_index_wanted,
+        used_indices_without_elem,
+        index_move_from,
         size_wanted,
       )
-    [#(size, [first, ..indices_rest]), ..rest] -> {
+    [#(size, [index, ..indices_rest]), ..rest] -> {
       let searched = searched |> list.reverse
       let searched = case size > size_wanted {
-        True -> insert_free_space(searched, size - size_wanted, first)
+        True -> insert_free_space(searched, index, size - size_wanted)
         False -> searched
       }
       let remains = case indices_rest {
         [] -> []
         indices_rest -> [#(size, indices_rest)]
       }
-      Ok(#([searched, remains, rest] |> list.flatten, first))
+      Ok(#(
+        [searched, remains, rest]
+          |> list.flatten
+          |> insert_gap_free_space(
+            [index, ..used_indices_without_elem]
+              |> list.sort(int.compare)
+              |> list.unique,
+            index_move_from,
+            size_wanted,
+          ),
+        index,
+      ))
     }
     _ -> panic
   }
 }
 
-fn insert_free_space(
+pub fn insert_gap_free_space(
   list: List(#(Int, List(Int))),
-  size_free_space: Int,
+  sorted_used_indices: List(Int),
+  index: Int,
+  size: Int,
+) -> List(#(Int, List(Int))) {
+  let #(list, space_after) = case
+    sorted_used_indices
+    |> list.contains(index + 1)
+  {
+    False -> list |> remove_free_space_at_index(index + 1)
+    True -> #(list, 0)
+  }
+
+  let delete_from =
+    sorted_used_indices
+    |> list.reverse
+    |> list.find(fn(x) { x <= index })
+    |> result.unwrap(0)
+
+  let #(list, space) =
+    list.range(delete_from, index)
+    |> list.fold(#(list, 0), fn(acc, i) {
+      let #(list, space) = acc
+      let #(list, space2) = list |> remove_free_space_at_index(i)
+      #(list, space + space2)
+    })
+
+  insert_free_space(list, delete_from, size + space + space_after)
+}
+
+pub fn remove_free_space_at_index(
+  list: List(#(Int, List(Int))),
+  index: Int,
+) -> #(List(#(Int, List(Int))), Int) {
+  let #(list, new_space) =
+    list
+    |> list.map(fn(t) {
+      let #(size, indices) = t
+      let #(elems, indices) =
+        indices
+        |> list.partition(fn(elem) { elem == index })
+      case elems, indices {
+        [], _ -> #([#(size, indices)], 0)
+        _, [] -> #([], size * list.length(elems))
+        _, _ -> #([#(size, indices)], size * list.length(elems))
+      }
+    })
+    |> list.unzip
+  #(
+    list
+      |> list.flatten,
+    new_space |> list.reduce(int.add) |> result.unwrap(0),
+  )
+}
+
+pub fn insert_free_space(
+  list: List(#(Int, List(Int))),
   index_free_space: Int,
+  size_free_space: Int,
 ) -> List(#(Int, List(Int))) {
   let #(smaller, bigger_equal) =
     list
@@ -257,7 +344,7 @@ fn insert_free_space(
       |> list.flatten
 
     _ ->
-      [smaller, [#(size_free_space, [index_free_space])]]
+      [smaller, [#(size_free_space, [index_free_space])], bigger_equal]
       |> list.flatten
   }
 }
