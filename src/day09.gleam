@@ -100,6 +100,7 @@ pub fn solution1(input: Input) -> Int {
       let File(id, block_size) = file
       let #(lower, sum) = acc
       let upper = lower + block_size
+      // id * (small gauss(upper - 1) - small gauss(lower - 1))
       let elem = id * { upper * { upper - 1 } - lower * { lower - 1 } } / 2
       #(lower + block_size, sum + elem)
     })
