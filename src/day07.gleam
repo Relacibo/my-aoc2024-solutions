@@ -8,6 +8,8 @@ import simplifile
 // import gleam/float
 // import gleam_community/maths/elementary
 
+pub const day_number_string = "day07"
+
 pub fn main() {
   case run_solutions() {
     Error(err) -> io.println(err)
@@ -16,7 +18,9 @@ pub fn main() {
 }
 
 pub fn run_solutions() -> Result(Nil, String) {
-  use input <- result.try(read_input("resources/day07/input.txt"))
+  use input <- result.try(read_input(
+    "resources/" <> day_number_string <> "/input.txt",
+  ))
   solution1(input)
   |> int.to_string
   |> string.append("Problem 1 - Solution: ", _)

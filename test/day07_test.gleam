@@ -1,14 +1,18 @@
-import day07
+import day07.{day_number_string, read_input, solution1, solution2}
+import startest.{describe, it}
 import startest/expect
 
-pub fn problem1_test() {
-  let assert Ok(input) = day07.read_input("resources/day07/test_input.txt")
-  day07.solution1(input)
-  |> expect.to_equal(3749)
-}
-
-pub fn problem2_test() {
-  let assert Ok(input) = day07.read_input("resources/day07/test_input.txt")
-  day07.solution2(input)
-  |> expect.to_equal(11_387)
+pub fn day07_tests() {
+  let assert Ok(input) =
+    read_input("resources/" <> day_number_string <> "/test_input.txt")
+  describe(day_number_string, [
+    it("solution 1", fn() {
+      solution1(input)
+      |> expect.to_equal(3749)
+    }),
+    it("solution 2", fn() {
+      solution2(input)
+      |> expect.to_equal(11_387)
+    }),
+  ])
 }
