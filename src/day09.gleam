@@ -113,10 +113,8 @@ pub fn find_free_spaces_solution2(
   free_space_map: List(#(Int, List(Int))),
   files: Dict(Int, List(File)),
 ) -> List(DiskBlocks) {
-  "--" |> io.debug
-  rev |> io.debug
-  free_space_map |> io.debug
-  files |> io.debug
+  debug_state(rev, free_space_map, files)
+  rev |> list.first |> io.debug
   case rev {
     [] -> {
       files
@@ -224,8 +222,8 @@ pub fn use_first_free_space(
 ) -> Result(#(List(#(Int, List(Int))), Int), Nil) {
   case to_be_searched {
     [] -> Error(Nil)
-    [#(size, [first, ..]) as entry, ..rest]
-      if size < size_wanted || first > index_move_from
+    [#(size, [index, ..]) as entry, ..rest]
+      if size < size_wanted || index > index_move_from
     ->
       use_first_free_space(
         rest,
@@ -267,13 +265,17 @@ pub fn insert_gap_free_space(
   index: Int,
   size: Int,
 ) -> List(#(Int, List(Int))) {
-  let #(list, space_after) = case
+  let until = case
     sorted_used_indices
+    // |> io.debug
     |> list.contains(index + 1)
   {
-    False -> list |> remove_free_space_at_index(index + 1)
-    True -> #(list, 0)
+    // |> io.debug
+    False -> index + 1
+    True -> index
   }
+
+  let list = insert_free_space(list, index - 1, size)
 
   let delete_from =
     sorted_used_indices
@@ -282,14 +284,14 @@ pub fn insert_gap_free_space(
     |> result.unwrap(0)
 
   let #(list, space) =
-    list.range(delete_from, index)
+    list.range(delete_from + 1, until)
     |> list.fold(#(list, 0), fn(acc, i) {
       let #(list, space) = acc
       let #(list, space2) = list |> remove_free_space_at_index(i)
       #(list, space + space2)
     })
 
-  insert_free_space(list, delete_from, size + space + space_after)
+  insert_free_space(list, delete_from, space)
 }
 
 pub fn remove_free_space_at_index(
@@ -415,4 +417,54 @@ pub fn read_input(path: String) -> Result(Input, String) {
   |> list.flatten
   |> Input
   |> Ok
+}
+
+pub fn debug_state(
+  rev: List(File),
+  free_space_map: List(#(Int, List(Int))),
+  files: Dict(Int, List(File)),
+) {
+  let rev =
+    rev
+    |> list.map(fn(file) {
+      let File(id, _) = file
+      #(id, [file])
+    })
+    |> dict.from_list
+  rev
+  |> dict.combine(files, fn(orig, added) { [added, orig] |> list.flatten })
+  |> dict.map_values(fn(_, v) { v |> list.map(FileBlocks) })
+  |> dict.combine(
+    free_space_map
+      |> list.flat_map(fn(t) {
+        let #(size, indices) = t
+        indices
+        |> list.map(fn(i) { dict.new() |> dict.insert(i, size) })
+        |> list.fold(dict.new(), fn(acc, d) {
+          dict.combine(acc, d, fn(a, b) { a + b })
+        })
+        |> dict.to_list
+      })
+      |> dict.from_list
+      |> dict.map_values(fn(_, size) { [FreeSpaceBlocks(FreeSpace(size))] }),
+    fn(l1, l2) { [l2, l1] |> list.flatten },
+  )
+  |> dict.to_list
+  |> list.sort(fn(a, b) {
+    let #(key_a, _) = a
+    let #(key_b, _) = b
+    int.compare(key_a, key_b)
+  })
+  |> list.flat_map(fn(t) {
+    let #(_, entries) = t
+    entries |> list.reverse
+  })
+  |> list.flat_map(fn(l) {
+    case l {
+      FileBlocks(File(id, size)) -> id |> int.to_string |> list.repeat(size)
+      FreeSpaceBlocks(FreeSpace(size)) -> "." |> list.repeat(size)
+    }
+  })
+  |> string.concat
+  |> io.debug
 }
