@@ -113,8 +113,6 @@ pub fn find_free_spaces_solution2(
   free_space_map: List(#(Int, List(Int))),
   files: Dict(Int, List(File)),
 ) -> List(DiskBlocks) {
-  debug_state(rev, free_space_map, files)
-  rev |> list.first |> io.debug
   case rev {
     [] -> {
       files
@@ -223,7 +221,7 @@ pub fn use_first_free_space(
   case to_be_searched {
     [] -> Error(Nil)
     [#(size, [index, ..]) as entry, ..rest]
-      if size < size_wanted || index > index_move_from
+      if size < size_wanted || index >= index_move_from
     ->
       use_first_free_space(
         rest,
@@ -267,10 +265,8 @@ pub fn insert_gap_free_space(
 ) -> List(#(Int, List(Int))) {
   let until = case
     sorted_used_indices
-    // |> io.debug
     |> list.contains(index + 1)
   {
-    // |> io.debug
     False -> index + 1
     True -> index
   }
@@ -284,13 +280,12 @@ pub fn insert_gap_free_space(
     |> result.unwrap(0)
 
   let #(list, space) =
-    list.range(delete_from + 1, until)
+    list.range(delete_from, until)
     |> list.fold(#(list, 0), fn(acc, i) {
       let #(list, space) = acc
       let #(list, space2) = list |> remove_free_space_at_index(i)
       #(list, space + space2)
     })
-
   insert_free_space(list, delete_from, space)
 }
 
@@ -466,5 +461,4 @@ pub fn debug_state(
     }
   })
   |> string.concat
-  |> io.debug
 }
