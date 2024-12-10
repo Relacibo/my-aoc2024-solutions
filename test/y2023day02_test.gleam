@@ -12,7 +12,7 @@ pub fn y2023day02_tests() {
     }),
     it("solution 2", fn() {
       solution2(input)
-      |> expect.to_equal(281)
+      |> expect.to_equal(2286)
     }),
   ])
 }

@@ -44,7 +44,23 @@ pub fn solution1(input: Input) -> Int {
 }
 
 pub fn solution2(input: Input) -> Int {
-  todo
+  let Input(games) = input
+  games
+  |> list.map(fn(game) {
+    let Game(_, game_parts) = game
+    let #(r, b, g) =
+      game_parts
+      |> list.fold(#(0, 0, 0), fn(acc, gp) {
+        let #(r, b, g) = acc
+        let GamePart(red, blue, green) = gp
+        let red = int.max(r, red)
+        let blue = int.max(b, blue)
+        let green = int.max(g, green)
+        #(red, blue, green)
+      })
+    r * b * g
+  })
+  |> int.sum
 }
 
 pub type Input {
