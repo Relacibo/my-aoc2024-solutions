@@ -243,11 +243,11 @@ pub fn use_first_free_space(
       Ok(#(
         [searched, remains, rest]
           |> list.flatten
-          |> insert_gap_free_space(
+          |> insert_free_space_and_cleanup(
             [index, ..used_indices_without_elem]
               |> list.sort(int.compare)
               |> list.unique,
-            index_move_from,
+            index_move_from - 1,
             size_wanted,
           ),
         index,
@@ -257,21 +257,21 @@ pub fn use_first_free_space(
   }
 }
 
-pub fn insert_gap_free_space(
+pub fn insert_free_space_and_cleanup(
   list: List(#(Int, List(Int))),
   sorted_used_indices: List(Int),
   index: Int,
   size: Int,
 ) -> List(#(Int, List(Int))) {
-  let until = case
+  let to = case
     sorted_used_indices
     |> list.contains(index + 1)
   {
-    False -> index + 1
+    False -> index
     True -> index
   }
 
-  let list = insert_free_space(list, index - 1, size)
+  let list = insert_free_space(list, index, size)
 
   let delete_from =
     sorted_used_indices
@@ -280,7 +280,7 @@ pub fn insert_gap_free_space(
     |> result.unwrap(0)
 
   let #(list, space) =
-    list.range(delete_from, until)
+    list.range(delete_from, to)
     |> list.fold(#(list, 0), fn(acc, i) {
       let #(list, space) = acc
       let #(list, space2) = list |> remove_free_space_at_index(i)
