@@ -11,6 +11,10 @@ import startest/expect
 pub fn day09_tests() {
   let assert Ok(input) =
     read_input("resources/" <> day_number_string <> "/test_input.txt")
+  let assert Ok(input2) =
+    read_input("resources/" <> day_number_string <> "/test_input2.txt")
+  let assert Ok(input3) =
+    read_input("resources/" <> day_number_string <> "/test_input3.txt")
   describe(day_number_string, [
     it("solution 1", fn() {
       solution1(input)
@@ -188,6 +192,14 @@ pub fn day09_tests() {
       it("solution", fn() {
         solution2(input)
         |> expect.to_equal(2858)
+      }),
+      it("solutionInput2", fn() {
+        solution2(input2)
+        |> expect.to_equal(1703)
+      }),
+      it("solutionInput3", fn() {
+        solution2(input3)
+        |> expect.to_equal(1703)
       }),
     ]),
   ])

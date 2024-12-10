@@ -99,15 +99,68 @@ fn fill_free_space(
 
 pub fn solution2(input: Input) -> Int {
   let Input(file_blocks) = input
-  let #(used, space) =
+
+  let all =
     file_blocks
-    |> list.unzip
-  let free_space_map = create_free_space_to_index_map(space)
+    |> list.flat_map(fn(t) {
+      let #(file, space) = t
+      [FileBlocks(file), FreeSpaceBlocks(space)]
+    })
+    |> cleanup_disk_blocks([])
+    |> io.debug
+
+  let used =
+    all
+    |> list.filter_map(fn(f) {
+      case f {
+        FileBlocks(f) -> Ok(f)
+        _ -> Error(Nil)
+      }
+    })
+
+  let free_space_map = create_free_space_to_index_map(all) |> io.debug
+
+  io.debug(state_to_string(used, free_space_map, dict.new()))
 
   used
   |> list.reverse
   |> find_free_spaces_solution2(free_space_map, dict.new())
   |> calculate_checksum
+}
+
+fn cleanup_disk_blocks(
+  files: List(DiskBlocks),
+  acc: List(DiskBlocks),
+) -> List(DiskBlocks) {
+  case files {
+    [FileBlocks(File(_, size)) as file, ..rest] if size > 0 ->
+      cleanup_disk_blocks(rest, [file, ..acc])
+    [] -> acc |> list.reverse
+    _ -> {
+      let #(empty, not_empty) =
+        files
+        |> list.split_while(fn(block) {
+          case block {
+            FileBlocks(File(_, size)) if size == 0 -> True
+            FreeSpaceBlocks(_) -> True
+            _ -> False
+          }
+        })
+      let space_size =
+        empty
+        |> list.flat_map(fn(block) {
+          case block {
+            FileBlocks(_) -> []
+            FreeSpaceBlocks(FreeSpace(size)) -> [size]
+          }
+        })
+        |> int.sum
+      cleanup_disk_blocks(not_empty, [
+        FreeSpaceBlocks(FreeSpace(space_size)),
+        ..acc
+      ])
+    }
+  }
 }
 
 pub fn find_free_spaces_solution2(
@@ -116,7 +169,10 @@ pub fn find_free_spaces_solution2(
   files: Dict(Int, List(File)),
 ) -> List(DiskBlocks) {
   case rev {
-    [] -> collect_finished_state(free_space_map, files)
+    [] -> {
+      io.debug(state_to_string([], free_space_map, files))
+      collect_finished_state(free_space_map, files)
+    }
     [File(id_rev, size_rev) as file_rev, ..rest_rev] -> {
       case
         use_first_free_space(
@@ -188,29 +244,33 @@ pub fn collect_finished_state(
   })
 }
 
-pub fn create_free_space_to_index_map(disk: List(FreeSpace)) -> FreeSpaceMap {
-  let #(index_to_size, size_to_index) =
+pub fn create_free_space_to_index_map(disk: List(DiskBlocks)) -> FreeSpaceMap {
+  let #(index_to_size, size_to_index, _) =
     disk
-    |> list.index_fold(#(dict.new(), dict.new()), fn(acc, block, index) {
-      let FreeSpace(size) = block
-      let #(its, sti) = acc
-      let its = its |> dict.insert(index, size)
-      let sti =
-        case dict.get(sti, size) {
-          Ok(v) -> [index, ..v]
-          Error(_) -> [index]
+    |> list.fold(#(dict.new(), dict.new(), 0), fn(acc, block) {
+      let #(its, sti, index) = acc
+      case block {
+        FreeSpaceBlocks(FreeSpace(size)) -> {
+          let its = its |> dict.insert(index, size)
+          let sti =
+            case dict.get(sti, size) {
+              Ok(v) -> [index, ..v]
+              Error(_) -> [index]
+            }
+            |> dict.insert(sti, size, _)
+          #(its, sti, index)
         }
-        |> dict.insert(sti, size, _)
-      #(its, sti)
+        FileBlocks(File(id, _)) -> #(its, sti, id)
+      }
     })
   let size_to_index =
     size_to_index
     |> dict.map_values(fn(_, val) { list.reverse(val) })
     |> dict.to_list
     |> list.sort(fn(a, b) {
-      let #(key_a, _) = a
-      let #(key_b, _) = b
-      int.compare(key_a, key_b)
+      let assert #(_, [first_a, ..]) = a
+      let assert #(_, [first_b, ..]) = b
+      int.compare(first_a, first_b)
     })
   FreeSpaceMap(index_to_size, size_to_index)
 }
@@ -277,7 +337,6 @@ pub fn insert_free_space_and_cleanup(
   index: Int,
   size: Int,
 ) -> FreeSpaceMap {
-  let FreeSpaceMap(index_to_size, list) = fsp
   let to = case
     sorted_used_indices
     |> list.contains(index + 1)
@@ -292,14 +351,20 @@ pub fn insert_free_space_and_cleanup(
     |> list.find(fn(x) { x <= index })
     |> result.unwrap(0)
 
-  let #(index_to_size, list, space) =
-    remove_free_space_for_indices(
-      index_to_size,
-      list,
-      list.range(delete_from, to),
-    )
+  cleanup(fsp, delete_from, to, size)
+}
 
-  insert_free_space(index_to_size, list, delete_from, size + space)
+pub fn cleanup(
+  fsm: FreeSpaceMap,
+  from: Int,
+  to: Int,
+  added_size: Int,
+) -> FreeSpaceMap {
+  let FreeSpaceMap(index_to_size, list) = fsm
+  let #(index_to_size, list, space) =
+    remove_free_space_for_indices(index_to_size, list, list.range(from, to))
+
+  insert_free_space(index_to_size, list, from, added_size + space)
   |> fn(t) {
     let #(its, sti) = t
     FreeSpaceMap(its, sti)
@@ -457,7 +522,7 @@ pub fn read_input(path: String) -> Result(Input, String) {
   |> Ok
 }
 
-pub fn debug_state(
+pub fn state_to_string(
   rev: List(File),
   free_space_map: FreeSpaceMap,
   files: Dict(Int, List(File)),
