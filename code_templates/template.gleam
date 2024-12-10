@@ -29,6 +29,14 @@ pub fn run_solutions() -> Result(Nil, String) {
   Ok(Nil)
 }
 
+pub fn solution1(input: Input) -> Int {
+  todo
+}
+
+pub fn solution2(input: Input) -> Int {
+  todo
+}
+
 pub type Input {
   Input
 }
@@ -41,13 +49,5 @@ pub fn read_input(path: String) -> Result(Input, String) {
   content
   |> string.split("\n")
   |> list.filter(fn(s) { !string.is_empty(s) })
-  todo
-}
-
-pub fn solution1(input: Input) -> Int {
-  todo
-}
-
-pub fn solution2(input: Input) -> Int {
   todo
 }
