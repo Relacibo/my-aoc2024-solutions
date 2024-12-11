@@ -87,28 +87,17 @@ fn run_algorithm(stones: Vec<u64>, iterations: u32) -> u64 {
     sum
 }
 
-fn run_algorithm_single_stone(stone: u64, iterations: u32) -> u64 {
-    let mut stack = vec![(stone, iterations)];
-    let mut sum = 0;
-    while let Some((stone, i)) = stack.pop() {
-        if i == 0 {
-            sum += 1;
-            continue;
-        }
-        let i = i - 1;
-        handle_stone(stone, |s| stack.push((s, i)))
-    }
-    sum
-}
-
 #[memoize]
 fn run_algorithm_single_stone_memoized(stone: u64, iterations: u32) -> u64 {
-    if iterations == 0 {
-        return 1;
-    }
-    let i = iterations - 1;
+    let iterations = iterations - 1;
     let mut sum = 0;
-    handle_stone(stone, |s| sum += run_algorithm_single_stone_memoized(s, i));
+    handle_stone(stone, |s| {
+        sum += if iterations != 0 {
+            run_algorithm_single_stone_memoized(s, iterations)
+        } else {
+            1
+        }
+    });
     sum
 }
 
