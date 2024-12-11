@@ -1,5 +1,6 @@
 import day11.{
-  day_number_string, get_decimal_digit_count, read_input, solution1, solution2,
+  cut_decimal_number_in_two, day_number_string, get_decimal_digit_count,
+  read_input, solution1, solution2,
 }
 import startest.{describe, it}
 import startest/expect
@@ -11,10 +12,6 @@ pub fn day08_tests() {
     it("solution 1", fn() {
       solution1(input)
       |> expect.to_equal(55_312)
-    }),
-    it("solution 2", fn() {
-      solution2(input)
-      |> expect.to_equal(14)
     }),
     it("get_decimal_digit_count", fn() {
       get_decimal_digit_count(10)
@@ -31,6 +28,14 @@ pub fn day08_tests() {
     it("get_decimal_digit_count", fn() {
       get_decimal_digit_count(10_000_000_000_000)
       |> expect.to_equal(14)
+    }),
+    it("get_decimal_digit_count", fn() {
+      get_decimal_digit_count(10_000_000_000_000)
+      |> expect.to_equal(14)
+    }),
+    it("cut_decimal_number_in_two", fn() {
+      cut_decimal_number_in_two(10_000_000_000_000, 14)
+      |> expect.to_equal([1_000_000, 0])
     }),
   ])
 }

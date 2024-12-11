@@ -1,10 +1,12 @@
 import gleam/int
 import gleam/io
+import gleam/iterator
 import gleam/list
 import gleam/result
 import gleam/string
 import gleam_community/maths/conversion
 import gleam_community/maths/elementary
+import parallel_map.{WorkerAmount}
 import simplifile
 
 pub const day_number_string = "day11"
@@ -44,15 +46,53 @@ pub fn run_algorithm(list: List(Int), iterations_left: Int) -> Int {
         case num {
           0 -> [1]
           n -> {
-            case get_decimal_digit_count(n) % 2 == 0 {
-              True -> cut_decimal_number_in_two(n)
-              False -> [n * 2024]
+            case get_decimal_digit_count(n) {
+              dc if dc % 2 == 0 -> cut_decimal_number_in_two(n, dc)
+              _ -> [n * 2024]
             }
           }
         }
       })
       |> run_algorithm(iteration)
     False -> list |> list.length
+  }
+}
+
+pub fn solution2(input: List(Int)) -> Int {
+  let assert Ok(res) =
+    input
+    |> iterator.from_list
+    |> parallel_map.iterator_pmap(
+      run_algorithm2(_, 75),
+      WorkerAmount(16),
+      1_000_000_000,
+    )
+    |> iterator.to_list
+    |> result.all
+    |> io.debug
+
+  res
+  |> int.sum
+}
+
+pub fn run_algorithm2(num: Int, iterations_left: Int) -> Int {
+  let iteration = iterations_left - 1
+  case iteration >= 0 {
+    True ->
+      case num {
+        0 -> run_algorithm2(1, iteration)
+        n -> {
+          case get_decimal_digit_count(n) {
+            dc if dc % 2 == 0 -> {
+              cut_decimal_number_in_two(n, dc)
+              |> list.map(run_algorithm2(_, iteration))
+              |> int.sum
+            }
+            _ -> run_algorithm2(n * 2024, iteration)
+          }
+        }
+      }
+    False -> 1
   }
 }
 
@@ -67,16 +107,16 @@ pub fn get_decimal_digit_count(num: Int) -> Int {
   + 1
 }
 
-fn cut_decimal_number_in_two(num: Int) -> List(Int) {
-  let s = num |> int.to_string
-  s
-  |> string.to_graphemes
-  |> list.sized_chunk({ s |> string.length } / 2)
-  |> list.map(fn(s) { s |> string.concat |> int.parse |> result.unwrap(0) })
-}
-
-pub fn solution2(input: List(Int)) -> Int {
-  input |> run_algorithm(75)
+pub fn cut_decimal_number_in_two(
+  num: Int,
+  decimal_digit_count: Int,
+) -> List(Int) {
+  let assert Ok(divisor) =
+    int.power(10, { decimal_digit_count / 2 } |> int.to_float)
+  let divisor = divisor |> conversion.float_to_int
+  let left = num / divisor
+  let right = num % divisor
+  [left, right]
 }
 
 pub fn read_input(path: String) -> Result(List(Int), String) {

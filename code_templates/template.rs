@@ -6,10 +6,12 @@ use std::{
 
 use anyhow::anyhow;
 
-const DAY_NUMBER_STRING: & str = "dayxx";
+const DAY_NUMBER_STRING: &str = "dayxx";
 
 pub fn main() -> anyhow::Result<()> {
-    let input = Input::read_from_file(Path::new(&format!("resources/{DAY_NUMBER_STRING}/input.txt")))?;
+    let input = Input::read_from_file(Path::new(&format!(
+        "resources/{DAY_NUMBER_STRING}/input.txt"
+    )))?;
     let solution = problem1::solution(&input);
     // println!("Problem 1 - Solution: {solution}");
     let solution = problem2::solution(input);
@@ -18,7 +20,7 @@ pub fn main() -> anyhow::Result<()> {
 }
 
 #[derive(Debug, Clone, Default)]
-struct Input {}
+pub struct Input {}
 
 impl Input {
     fn read_from_file(path: &Path) -> anyhow::Result<Self> {
