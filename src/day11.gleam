@@ -57,52 +57,34 @@ pub fn run_algorithm(list: List(Int), iterations_left: Int) -> Int {
   }
 }
 
-pub fn run_algorithm2(num: Int, iterations_left: Int) -> Int {
-  let iteration = iterations_left - 1
-  case iteration >= 0 {
-    True ->
-      case num {
-        0 -> run_algorithm2(1, iteration)
-        n -> {
-          case get_decimal_digit_count(n) {
-            dc if dc % 2 == 0 -> {
-              cut_decimal_number_in_two(n, dc)
-              |> list.map(run_algorithm2(_, iteration))
-              |> int.sum
-            }
-            _ -> run_algorithm2(n * 2024, iteration)
-          }
-        }
-      }
-    False -> 1
-  }
-}
-
 pub fn solution2(input: List(Int)) -> Int {
   glemo.init(["cache"])
   input
-  |> list.map(fn(stone) { run_algorithm2_memoized(#(stone, 75)) })
+  |> list.map(fn(stone) { run_algorithm2_memoized(stone, 75) })
   |> int.sum
 }
 
-pub fn run_algorithm2_memoized(t: #(Int, Int)) -> Int {
-  let rec = fn(num: Int, iteration: Int) {
-    glemo.memo(#(num, iteration), "cache", run_algorithm2_memoized)
-  }
-  let #(num, iterations_left) = t
-  let iteration = iterations_left - 1
+pub fn run_algorithm2_memoized(num: Int, iteration: Int) -> Int {
+  glemo.memo(#(num, iteration), "cache", fn(t) {
+    let #(num, iteration) = t
+    run_algorithm2(num, iteration)
+  })
+}
+
+pub fn run_algorithm2(num: Int, iteration: Int) -> Int {
+  let iteration = iteration - 1
   case iteration >= 0 {
     True ->
       case num {
-        0 -> rec(1, iteration)
+        0 -> run_algorithm2_memoized(1, iteration)
         n -> {
           case get_decimal_digit_count(n) {
             dc if dc % 2 == 0 -> {
               cut_decimal_number_in_two(n, dc)
-              |> list.map(rec(_, iteration))
+              |> list.map(run_algorithm2_memoized(_, iteration))
               |> int.sum
             }
-            _ -> rec(n * 2024, iteration)
+            _ -> run_algorithm2_memoized(n * 2024, iteration)
           }
         }
       }
