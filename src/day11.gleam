@@ -1,12 +1,11 @@
 import gleam/int
 import gleam/io
-import gleam/iterator
 import gleam/list
 import gleam/result
 import gleam/string
 import gleam_community/maths/conversion
 import gleam_community/maths/elementary
-import parallel_map.{WorkerAmount}
+import glemo
 import simplifile
 
 pub const day_number_string = "day11"
@@ -58,23 +57,6 @@ pub fn run_algorithm(list: List(Int), iterations_left: Int) -> Int {
   }
 }
 
-pub fn solution2(input: List(Int)) -> Int {
-  let assert Ok(res) =
-    input
-    |> iterator.from_list
-    |> parallel_map.iterator_pmap(
-      run_algorithm2(_, 75),
-      WorkerAmount(16),
-      1_000_000_000,
-    )
-    |> iterator.to_list
-    |> result.all
-    |> io.debug
-
-  res
-  |> int.sum
-}
-
 pub fn run_algorithm2(num: Int, iterations_left: Int) -> Int {
   let iteration = iterations_left - 1
   case iteration >= 0 {
@@ -89,6 +71,38 @@ pub fn run_algorithm2(num: Int, iterations_left: Int) -> Int {
               |> int.sum
             }
             _ -> run_algorithm2(n * 2024, iteration)
+          }
+        }
+      }
+    False -> 1
+  }
+}
+
+pub fn solution2(input: List(Int)) -> Int {
+  glemo.init(["cache"])
+  input
+  |> list.map(fn(stone) { run_algorithm2_memoized(#(stone, 75)) })
+  |> int.sum
+}
+
+pub fn run_algorithm2_memoized(t: #(Int, Int)) -> Int {
+  let rec = fn(num: Int, iteration: Int) {
+    glemo.memo(#(num, iteration), "cache", run_algorithm2_memoized)
+  }
+  let #(num, iterations_left) = t
+  let iteration = iterations_left - 1
+  case iteration >= 0 {
+    True ->
+      case num {
+        0 -> rec(1, iteration)
+        n -> {
+          case get_decimal_digit_count(n) {
+            dc if dc % 2 == 0 -> {
+              cut_decimal_number_in_two(n, dc)
+              |> list.map(rec(_, iteration))
+              |> int.sum
+            }
+            _ -> rec(n * 2024, iteration)
           }
         }
       }
