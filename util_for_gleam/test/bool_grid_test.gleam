@@ -1,6 +1,5 @@
 import bool_grid.{BoolGrid}
 import coords.{Coords}
-import gleam/io
 import startest.{describe, it}
 import startest/expect
 
