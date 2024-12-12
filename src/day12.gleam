@@ -184,27 +184,28 @@ pub fn find_number_of_sides(
 
   borders
   |> dict.to_list
-  |> list.map(fn(t) { find_number_of_sides_for_direction(t.1, t.0) })
+  |> list.map(fn(t) {
+    let #(direction, coords) = t
+    coords
+    |> list.map(get_level_and_value_for_direction(_, direction))
+    |> find_number_of_sides_for_direction(0)
+  })
   |> int.sum
 }
 
-pub fn find_number_of_sides_for_direction(
-  tiles: List(Coords),
+fn get_level_and_value_for_direction(
+  coords: Coords,
   direction: Direction,
-) {
-  tiles
-  |> list.map(fn(coords) {
-    let Coords(x, y) = coords
-    case direction {
-      North | South -> #(y, x)
-      East | West -> #(x, y)
-      _ -> panic as "Direction not supported"
-    }
-  })
-  |> find_number_of_sides_for_direction_helper(0)
+) -> #(Int, Int) {
+  let Coords(x, y) = coords
+  case direction {
+    North | South -> #(y, x)
+    East | West -> #(x, y)
+    _ -> panic as "Direction not supported"
+  }
 }
 
-pub fn find_number_of_sides_for_direction_helper(
+pub fn find_number_of_sides_for_direction(
   tiles: List(#(Int, Int)),
   acc: Int,
 ) -> Int {
@@ -223,7 +224,7 @@ pub fn find_number_of_sides_for_direction_helper(
         |> list.filter(fn(v) { v |> list.reduce(int.subtract) != Ok(-1) })
         |> list.length
       tiles_next
-      |> find_number_of_sides_for_direction_helper(acc + sum + 1)
+      |> find_number_of_sides_for_direction(acc + sum + 1)
     }
   }
 }
