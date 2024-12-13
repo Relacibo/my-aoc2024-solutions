@@ -5,7 +5,7 @@ import gleam/result
 import gleam/string
 import simplifile
 
-pub const day_number_string = "dayxx"
+pub const day_number_string = "day13"
 
 pub fn main() {
   case run_solutions() {
