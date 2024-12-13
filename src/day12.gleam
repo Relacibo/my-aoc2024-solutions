@@ -212,12 +212,12 @@ pub fn find_number_of_sides_for_direction(
   case tiles {
     [] -> acc
     [_] -> acc + 1
-    [x, ..xs] -> {
-      let #(xs, tiles_next) =
-        [x, ..xs]
+    [x, ..] -> {
+      let #(tiles, tiles_next) =
+        tiles
         |> list.partition(fn(other) { x.0 == other.0 })
       let sum =
-        xs
+        tiles
         |> list.map(fn(x) { x.1 })
         |> list.sort(int.compare)
         |> list.window(2)
