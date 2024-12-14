@@ -1,8 +1,10 @@
 import coords.{type Coords, Coords}
+import gleam/bool
 import gleam/int
 import gleam/io
 import gleam/list
 import gleam/option.{Some}
+import gleam/order.{Eq, Gt, Lt}
 import gleam/regexp
 import gleam/result
 import gleam/string
@@ -34,6 +36,46 @@ pub fn run_solutions() -> Result(Nil, String) {
 
 pub fn solution1(input: Input) -> Int {
   let Input(elems) = input
+  elems
+  |> list.map(fn(elem) {
+    calc_cheapest_price(elem, 0, 100, [])
+    |> list.reduce(int.min)
+  })
+  |> list.map(result.unwrap(_, 0))
+  |> int.sum
+}
+
+pub fn calc_cheapest_price(
+  elem: InputElem,
+  a_fac: Int,
+  b_fac: Int,
+  acc: List(Int),
+) -> List(Int) {
+  let InputElem(a, b, total) = elem
+  let Coords(x_a, y_a) = a
+  let Coords(x_b, y_b) = b
+  let Coords(x_total, y_total) = total
+  let x = x_a * a_fac + x_b * b_fac
+  let y = y_a * a_fac + y_b * b_fac
+  use <- bool.guard(b_fac == 0 || a_fac == 100, acc)
+  case int.compare(x, x_total), int.compare(y, y_total) {
+    Gt, Gt -> {
+      calc_cheapest_price(elem, a_fac, b_fac - 1, acc)
+    }
+    Eq, Eq -> {
+      calc_cheapest_price(elem, a_fac + 1, b_fac - 1, [
+        calc_tokens(a_fac, b_fac),
+        ..acc
+      ])
+    }
+    _, _ -> {
+      calc_cheapest_price(elem, a_fac + 1, b_fac, acc)
+    }
+  }
+}
+
+fn calc_tokens(a_fac: Int, b_fac: Int) -> Int {
+  a_fac * 3 + b_fac
 }
 
 pub fn solution2(input: Input) -> Int {

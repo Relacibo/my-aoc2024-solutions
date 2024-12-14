@@ -8,7 +8,7 @@ pub fn day13_tests() {
   describe(day_number_string, [
     it("solution 1", fn() {
       solution1(input)
-      |> expect.to_equal(14)
+      |> expect.to_equal(480)
     }),
     it("solution 2", fn() {
       solution2(input)
