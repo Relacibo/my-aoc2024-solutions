@@ -107,19 +107,25 @@ pub fn calc_cheapest_price2(
   let Coords(x_a, y_a) = a
   let Coords(x_b, y_b) = b
   let Coords(x_total, y_total) = total
-  let x = x_a * a_fac + x_b * b_fac
-  let y = y_a * a_fac + y_b * b_fac
   use <- bool.guard(b_fac <= 0 || a_fac >= a_max, acc)
   let token_price = calc_tokens(a_fac, b_fac)
   use <- bool.guard(acc != 0 && token_price > acc, acc)
-  case int.compare(x, x_total), int.compare(y, y_total) {
-    Gt, Gt -> {
+  let x = x_a * a_fac + x_b * b_fac
+  let y = y_a * a_fac + y_b * b_fac
+  case
+    { { x_total - x_a * a_fac } % x_b == 0 }
+    && { { y_total - y_a * a_fac } % y_b == 0 },
+    int.compare(x, x_total),
+    int.compare(y, y_total)
+  {
+    False, _, _ -> calc_cheapest_price2(elem, a_max, a_fac + 1, b_fac, acc)
+    _, Gt, Gt -> {
       calc_cheapest_price2(elem, a_max, a_fac, b_fac - 1, acc)
     }
-    Eq, Eq -> {
+    _, Eq, Eq -> {
       calc_cheapest_price2(elem, a_max, a_fac + 1, b_fac - 1, token_price)
     }
-    _, _ -> {
+    _, _, _ -> {
       calc_cheapest_price2(elem, a_max, a_fac + 1, b_fac, acc)
     }
   }
