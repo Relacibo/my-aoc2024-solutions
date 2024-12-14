@@ -27,10 +27,10 @@ pub fn run_solutions() -> Result(Nil, String) {
   |> int.to_string
   |> string.append("Problem 1 - Solution: ", _)
   |> io.println()
-  solution2(input)
-  |> int.to_string
-  |> string.append("Problem 2 - Solution: ", _)
-  |> io.println()
+  // solution2(input)
+  // |> int.to_string
+  // |> string.append("Problem 2 - Solution: ", _)
+  // |> io.println()
   Ok(Nil)
 }
 
@@ -79,7 +79,50 @@ fn calc_tokens(a_fac: Int, b_fac: Int) -> Int {
 }
 
 pub fn solution2(input: Input) -> Int {
-  todo
+  let Input(elems) = input
+  elems
+  |> list.map(fn(elem) {
+    let InputElem(a, b, total) = elem
+    let total =
+      total |> coords.add(Coords(10_000_000_000_000, 10_000_000_000_000))
+    InputElem(a, b, total)
+  })
+  |> list.map(fn(elem) {
+    let InputElem(a, b, total) = elem
+    let a_max = int.max(total.x / a.x, total.y / a.y) + 1
+    let b_max = int.max(total.x / b.x, total.y / b.y) + 1
+    calc_cheapest_price2(elem, a_max, 0, b_max, 0) |> io.debug
+  })
+  |> int.sum
+}
+
+pub fn calc_cheapest_price2(
+  elem: InputElem,
+  a_max: Int,
+  a_fac: Int,
+  b_fac: Int,
+  acc: Int,
+) -> Int {
+  let InputElem(a, b, total) = elem
+  let Coords(x_a, y_a) = a
+  let Coords(x_b, y_b) = b
+  let Coords(x_total, y_total) = total
+  let x = x_a * a_fac + x_b * b_fac
+  let y = y_a * a_fac + y_b * b_fac
+  use <- bool.guard(b_fac <= 0 || a_fac >= a_max, acc)
+  let token_price = calc_tokens(a_fac, b_fac)
+  use <- bool.guard(acc != 0 && token_price > acc, acc)
+  case int.compare(x, x_total), int.compare(y, y_total) {
+    Gt, Gt -> {
+      calc_cheapest_price2(elem, a_max, a_fac, b_fac - 1, acc)
+    }
+    Eq, Eq -> {
+      calc_cheapest_price2(elem, a_max, a_fac + 1, b_fac - 1, token_price)
+    }
+    _, _ -> {
+      calc_cheapest_price2(elem, a_max, a_fac + 1, b_fac, acc)
+    }
+  }
 }
 
 pub type Input {
