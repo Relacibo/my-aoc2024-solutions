@@ -1,3 +1,5 @@
+set dotenv-load
+
 gleam-day:
   #!/usr/bin/env sh
   export DAY_NUMBER=$(cat ./next_day || echo 1)
