@@ -10,6 +10,15 @@ pub type CharGrid {
   CharGrid(content: BitArray, width: Int, height: Int)
 }
 
+pub fn new(width: Int, height: Int, init: String) -> CharGrid {
+  let content =
+    init
+    |> bit_array.from_string
+    |> list.repeat(width * height)
+    |> bit_array.concat
+  CharGrid(content, width, height)
+}
+
 pub fn is_in_bounds(input: CharGrid, coords: Coords) -> Bool {
   let CharGrid(_, width, height) = input
   let Coords(x, y) = coords
