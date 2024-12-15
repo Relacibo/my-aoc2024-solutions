@@ -100,7 +100,7 @@ pub fn simulate_range(
     io.print(i |> int.to_string)
     io.println(":")
     robots_debug_string(robots, width, height) |> io.println
-    process.sleep(10)
+    process.sleep(50)
     robots
   })
 }
