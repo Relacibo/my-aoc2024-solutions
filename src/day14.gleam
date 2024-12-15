@@ -1,5 +1,7 @@
 import coords.{type Coords, Coords}
+import gleam/bool
 import gleam/dict
+import gleam/erlang/process
 import gleam/function
 import gleam/int
 import gleam/io
@@ -32,10 +34,8 @@ pub fn run_solutions() -> Result(Nil, String) {
   |> int.to_string
   |> string.append("Problem 1 - Solution: ", _)
   |> io.println()
-  solution2(input)
-  |> int.to_string
-  |> string.append("Problem 2 - Solution: ", _)
-  |> io.println()
+  io.println("Problem 2 - Solution:")
+  solution2(input, board_width, board_height)
   Ok(Nil)
 }
 
@@ -77,8 +77,47 @@ pub fn get_robot_quadrant(
   }
 }
 
-pub fn solution2(input: Input) -> Int {
-  todo
+pub fn solution2(input: Input, width: Int, height: Int) {
+  let Input(robots) = input
+  simulate_range(robots, 1, 7572, width, height)
+}
+
+pub fn simulate_range(
+  robots: List(Robot),
+  from: Int,
+  to: Int,
+  width: Int,
+  height: Int,
+) {
+  let robots = case from > 1 {
+    True -> move_robots(robots, from - 1, width, height)
+    _ -> robots
+  }
+  list.range(from, to)
+  |> list.fold(robots, fn(robots, i) {
+    let robots = move_robots(robots, 1, width, height)
+    use <- bool.guard(!should_show(robots, width), robots)
+    io.print(i |> int.to_string)
+    io.println(":")
+    robots_debug_string(robots, width, height) |> io.println
+    process.sleep(10)
+    robots
+  })
+}
+
+pub fn move_robots(
+  robots: List(Robot),
+  steps: Int,
+  width: Int,
+  height: Int,
+) -> List(Robot) {
+  robots |> list.map(move_robot(_, steps, width, height))
+}
+
+pub fn should_show(robots: List(Robot), width: Int) -> Bool {
+  robots
+  |> list.count(fn(r) { r.pos.x == 36 || r.pos.x == 66 })
+  >= 65
 }
 
 pub type Input {
@@ -112,4 +151,51 @@ pub fn read_input(path: String) -> Result(Input, String) {
   })
   |> Input
   |> Ok
+}
+
+pub fn robots_debug_string(
+  robots: List(Robot),
+  width: Int,
+  height: Int,
+) -> String {
+  let robots =
+    robots
+    |> list.map(fn(r) { r.pos })
+    |> list.group(fn(r) { r.y })
+    |> dict.map_values(fn(_, l) {
+      l |> list.sort(fn(r1, r2) { int.compare(r1.x, r2.x) })
+    })
+  list.range(0, height - 1)
+  |> list.map(fn(y) {
+    robots_debug_string_line(
+      robots |> dict.get(y) |> result.unwrap([]),
+      0,
+      width,
+      "",
+    )
+    <> "\n"
+  })
+  |> string.concat
+}
+
+pub fn robots_debug_string_line(
+  robots: List(Coords),
+  index: Int,
+  width: Int,
+  acc: String,
+) -> String {
+  case robots {
+    [] -> acc <> string.repeat("\u{2B1B}", width - index)
+    [Coords(x, _), ..xs] ->
+      case x < index {
+        True -> robots_debug_string_line(xs, index, width, acc)
+        False ->
+          robots_debug_string_line(
+            xs,
+            x + 1,
+            width,
+            acc <> string.repeat("\u{2B1B}", x - index) <> "\u{1F7E9}",
+          )
+      }
+  }
 }

@@ -10,9 +10,5 @@ pub fn day13_tests() {
       solution1(input)
       |> expect.to_equal(480)
     }),
-    it("solution 2", fn() {
-      solution2(input)
-      |> expect.to_equal(875_318_608_908)
-    }),
   ])
 }

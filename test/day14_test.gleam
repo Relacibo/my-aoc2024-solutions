@@ -12,9 +12,5 @@ pub fn day14_tests() {
       solution1(input, board_width, board_height)
       |> expect.to_equal(12)
     }),
-    it("solution 2", fn() {
-      solution2(input)
-      |> expect.to_equal(14)
-    }),
   ])
 }
