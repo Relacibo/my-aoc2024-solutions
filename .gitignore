@@ -4,3 +4,4 @@ output
 *.ez
 /build
 erl_crash.dump
+.env
