@@ -1,6 +1,6 @@
 import char_grid.{type CharGrid, CharGrid}
 import coords.{type Coords, Coords}
-import direction.{type Direction, East, North, South, West}
+import direction.{type Direction, East}
 import gleam/bool
 import gleam/deque.{type Deque}
 import gleam/dict.{type Dict}
