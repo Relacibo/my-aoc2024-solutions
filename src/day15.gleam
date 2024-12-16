@@ -38,7 +38,7 @@ pub fn run_solutions() -> Result(Nil, String) {
 
 pub fn solution1(input: Input) -> Int {
   let Input(room, moves) = input
-  let assert Ok(robot_pos) = room |> char_grid.find(fn(c) { c == "@" })
+  let assert Ok(robot_pos) = room |> char_grid.position(fn(c) { c == "@" })
   let assert Ok(room) = room |> char_grid.set_tile(robot_pos, ".")
 
   let #(room, _) =
@@ -119,7 +119,7 @@ pub fn solution2(input: Input) -> Int {
     }
     _ -> Nil
   }
-  let assert Ok(robot_pos) = room |> char_grid.find(fn(c) { c == "@" })
+  let assert Ok(robot_pos) = room |> char_grid.position(fn(c) { c == "@" })
   let assert Ok(room) = room |> char_grid.set_tile(robot_pos, ".")
   let #(room, _) =
     moves

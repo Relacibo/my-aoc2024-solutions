@@ -86,7 +86,7 @@ fn coords_to_internal_index(input: CharGrid, coords: Coords) -> Int {
   y * width + x
 }
 
-pub fn find(grid: CharGrid, fun: fn(String) -> Bool) -> Result(Coords, Nil) {
+pub fn position(grid: CharGrid, fun: fn(String) -> Bool) -> Result(Coords, Nil) {
   let CharGrid(_, width, height) = grid
   list.range(0, height * width - 1)
   |> list.find_map(fn(index) {
