@@ -16,9 +16,13 @@ pub fn day16_tests() {
       solution1(input2)
       |> expect.to_equal(11_048)
     }),
-    // it("solution 2", fn() {
-  //   solution2(input)
-  //   |> expect.to_equal(14)
-  // }),
+    it("solution 2", fn() {
+      solution2(input)
+      |> expect.to_equal(45)
+    }),
+    it("solution 2, bigger", fn() {
+      solution2(input2)
+      |> expect.to_equal(64)
+    }),
   ])
 }
