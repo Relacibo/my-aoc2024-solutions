@@ -10,6 +10,8 @@ import gleam/result
 import gleam/string
 import simplifile
 
+const print_debug_output = False
+
 pub const day_number_string = "day17"
 
 pub fn main() {
@@ -26,8 +28,10 @@ pub fn run_solutions() -> Result(Nil, String) {
   solution1(input)
   |> string.append("Problem 1 - Solution: ", _)
   |> io.println()
-  io.println("Problem 2 - Solution: ")
   solution2(input)
+  |> int.to_string
+  |> string.append("Problem 2 - Solution: ", _)
+  |> io.println()
   Ok(Nil)
 }
 
@@ -39,53 +43,6 @@ pub fn solution1(state: State) -> String {
   |> string.concat
 }
 
-pub fn solution2(state: State) {
-  let State(
-    program,
-    program_counter,
-    _register_a,
-    register_b,
-    register_c,
-    output,
-  ) = state
-  let reversed_program =
-    program
-    |> bit_array.to_string
-    |> result.unwrap("0")
-    |> string.to_utf_codepoints
-    |> list.map(fn(c) { string.utf_codepoint_to_int(c) })
-    |> list.reverse
-  list.range(0, 100_000_000)
-  |> list.map(fn(register_a) {
-    let state =
-      State(
-        program,
-        program_counter,
-        register_a,
-        register_b,
-        register_c,
-        output,
-      )
-    find_async(state, reversed_program)
-  })
-  |> list.each(task.await_forever)
-}
-
-fn find_async(state: State, searched_output: List(Int)) {
-  task.async(fn() {
-    case apply_all_remaining_ops(state) == searched_output {
-      True -> {
-        io.println("Found: ")
-        io.println(state.register_a |> int.to_string)
-        Nil
-      }
-      False -> {
-        Nil
-      }
-    }
-  })
-}
-
 pub fn apply_all_remaining_ops(state: State) -> List(Int) {
   case apply_op(state) {
     Ok(state) -> apply_all_remaining_ops(state)
@@ -93,17 +50,6 @@ pub fn apply_all_remaining_ops(state: State) -> List(Int) {
       state.output
     }
   }
-}
-
-pub type State {
-  State(
-    program: BitArray,
-    program_counter: Int,
-    register_a: Int,
-    register_b: Int,
-    register_c: Int,
-    output: List(Int),
-  )
 }
 
 pub fn apply_op(state: State) -> Result(State, Nil) {
@@ -252,6 +198,112 @@ pub fn apply_op(state: State) -> Result(State, Nil) {
   Ok(state)
 }
 
+pub fn solution2(state: State) -> Int {
+  let reversed_program =
+    state.program
+    |> bit_array.to_string
+    |> result.unwrap("0")
+    |> string.to_utf_codepoints
+    |> list.map(fn(c) { string.utf_codepoint_to_int(c) })
+    |> list.reverse
+
+  let all_answers = guess_initial_a_incrementally(0, reversed_program)
+  case print_debug_output {
+    True -> {
+      io.debug(all_answers)
+      Nil
+    }
+    False -> Nil
+  }
+  all_answers
+  |> list.reduce(int.min)
+  |> result.unwrap(-1)
+}
+
+fn int_power(num1: Int, num2: Int) -> Int {
+  int.power(num1, num2 |> int.to_float)
+  |> result.unwrap(1.0)
+  |> float.floor
+  |> float.round
+}
+
+// bst a
+// bxl 1
+// cdv b
+// bxl 5
+// bxc
+// adv 3
+// out b
+// jnz 0
+pub fn run_program(state: State) -> List(Int) {
+  let State(program, pc, a, _, _, out) = state
+
+  // 2,4 -> bst a
+  let b = a % 8
+
+  // 1,1 -> bxl 1
+  let b = int.bitwise_exclusive_or(b, 1)
+
+  // 7,5 -> cdv b
+  let c = a / int_power(2, b)
+
+  // 1,5 -> bxl 5
+  let b = int.bitwise_exclusive_or(b, 5)
+
+  // 4,0 -> bxc
+  let b = int.bitwise_exclusive_or(b, c)
+
+  // 0,3 -> adv 3
+  let a = a / 8
+
+  // 5,5 -> out b
+  let out = [b % 8, ..out]
+  case a != 0 {
+    True -> run_program(State(program, pc, a, b, c, out))
+    False -> out
+  }
+}
+
+pub fn guess_initial_a_incrementally(a_next: Int, out: List(Int)) -> List(Int) {
+  case out {
+    [] -> [a_next]
+    [b_mod_8_next, ..out] -> {
+      let a_candidate = a_next * 8
+      let filtered_a_candidates =
+        find_right_step(
+          list.range(a_candidate, a_candidate + 7),
+          b_mod_8_next,
+          [],
+        )
+      filtered_a_candidates
+      |> list.flat_map(guess_initial_a_incrementally(_, out))
+    }
+  }
+}
+
+pub fn find_right_step(
+  a_candidates: List(Int),
+  b_mod_8_next: Int,
+  acc: List(Int),
+) -> List(Int) {
+  case a_candidates {
+    [] -> acc
+    [a, ..a_candidates] -> {
+      let b =
+        int.bitwise_exclusive_or(
+          int.bitwise_exclusive_or(int.bitwise_exclusive_or(a % 8, 1), 5),
+          a / int_power(2, int.bitwise_exclusive_or(a % 8, 1)),
+        )
+
+      let acc = case b % 8 == b_mod_8_next {
+        True -> [a, ..acc]
+        False -> acc
+      }
+      find_right_step(a_candidates, b_mod_8_next, acc)
+    }
+  }
+}
+
 pub fn read_input(path: String) -> Result(State, String) {
   use content <- result.try(
     simplifile.read(path)
@@ -296,4 +348,15 @@ pub fn read_input(path: String) -> Result(State, String) {
 
   State(program, 0, register_a, register_b, register_c, [])
   |> Ok
+}
+
+pub type State {
+  State(
+    program: BitArray,
+    program_counter: Int,
+    register_a: Int,
+    register_b: Int,
+    register_c: Int,
+    output: List(Int),
+  )
 }
