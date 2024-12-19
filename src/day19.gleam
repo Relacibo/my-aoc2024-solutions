@@ -1,13 +1,14 @@
+import gleam/bool
 import gleam/int
 import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/regexp
 import gleam/result
 import gleam/string
-import gleam/regexp
 import simplifile
 
-pub const day_number_string = "$DAY_NUMBER_STRING"
+pub const day_number_string = "day19"
 
 pub fn main() {
   case run_solutions() {
@@ -32,7 +33,22 @@ pub fn run_solutions() -> Result(Nil, String) {
 }
 
 pub fn solution1(input: Input) -> Int {
-  todo
+  let Input(towels, patterns) = input
+
+  patterns |> list.filter_map(search_for_pattern(_, towels)) |> list.length
+}
+
+pub fn search_for_pattern(
+  pattern: String,
+  towels: List(String),
+) -> Result(Nil, Nil) {
+  use <- bool.guard(string.is_empty(pattern), Ok(Nil))
+  towels
+  |> list.filter_map(fn(towel) {
+    use <- bool.guard(!string.starts_with(pattern, towel), Error(Nil))
+    Ok(pattern |> string.drop_start(string.length(towel)))
+  })
+  |> list.find_map(search_for_pattern(_, towels))
 }
 
 pub fn solution2(input: Input) -> Int {
@@ -40,7 +56,7 @@ pub fn solution2(input: Input) -> Int {
 }
 
 pub type Input {
-  Input
+  Input(towel_types: List(String), patterns: List(String))
 }
 
 pub fn read_input(path: String) -> Result(Input, String) {
@@ -48,26 +64,13 @@ pub fn read_input(path: String) -> Result(Input, String) {
     simplifile.read(path)
     |> result.map_error(fn(_) { "Could not read file" }),
   )
-  // content
-  // |> string.split("\n")
-  // |> list.filter(fn(s) { !string.is_empty(s) })
-  let options = regexp.Options(case_insensitive: False, multi_line: True)
-  let assert Ok(regex) =
-    regexp.compile(
-      "^$",
-      options,
-    )
-  regex
-  |> regexp.scan(content)
-  |> list.map(fn(m) {
-    let sm = m.submatches
-      |> list.map(fn(n) {
-        let assert Some(n) = n
-        let assert Ok(i) = int.parse(n)
-        i
-      })
-    todo
-  })
-  |> Input
-  |> Ok
+  let assert [towels, patterns] =
+    content
+    |> string.split("\n\n")
+  let towels = towels |> string.split(", ")
+  let patterns =
+    patterns
+    |> string.split("\n")
+    |> list.filter(fn(s) { !string.is_empty(s) })
+  Ok(Input(towels, patterns))
 }
