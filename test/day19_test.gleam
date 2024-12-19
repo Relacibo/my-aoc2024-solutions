@@ -10,9 +10,9 @@ pub fn day19_tests() {
       solution1(input)
       |> expect.to_equal(6)
     }),
-    // it("solution 2", fn() {
-  //   solution2(input)
-  //   |> expect.to_equal(14)
-  // }),
+    it("solution 2", fn() {
+      solution2(input)
+      |> expect.to_equal(16)
+    }),
   ])
 }
