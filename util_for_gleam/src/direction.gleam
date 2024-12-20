@@ -36,3 +36,16 @@ pub fn next_counterclockwise_non_diag(dir: Direction) -> Direction {
     _ -> panic as "Direction not supported"
   }
 }
+
+pub fn opposite(dir: Direction) -> Direction {
+  case dir {
+    North -> South
+    NorthEast -> SouthWest
+    East -> West
+    SouthEast -> NorthWest
+    South -> North
+    SouthWest -> NorthEast
+    West -> East
+    NorthWest -> SouthEast
+  }
+}
