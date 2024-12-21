@@ -3,8 +3,9 @@ import startest.{describe, it}
 import startest/expect
 
 pub fn ${DAY_NUMBER_STRING}_tests() {
-  let assert Ok(input) =
+  let input =
     read_input("resources/" <> day_number_string <> "/test_input.txt")
+    |> result.lazy_unwrap(fn() { panic as "Could not read test input file" })
   describe(day_number_string, [
     it("solution 1", fn() {
       solution1(input)
