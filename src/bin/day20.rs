@@ -30,7 +30,7 @@ mod problem1 {
     use crate::Input;
 
     pub fn solution(input: &Input) -> ! {
-        let Input {} = input;
+        // let Input {} = input;
         todo!()
     }
 }
@@ -39,7 +39,7 @@ mod problem2 {
     use crate::Input;
 
     pub fn solution(input: Input) -> ! {
-        let Input {} = input;
+        // let Input {} = input;
         todo!()
     }
 }
@@ -69,7 +69,6 @@ mod test {
         // assert_eq!(solution, 0)
     }
 }
-
 
 #[derive(Debug, Clone, Default)]
 pub struct Input {
