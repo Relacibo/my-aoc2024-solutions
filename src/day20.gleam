@@ -13,6 +13,8 @@ import gleam/result
 import gleam/set.{type Set}
 import gleam/string
 
+const print_debug_output = True
+
 pub const day_number_string = "day20"
 
 pub fn main() {
@@ -30,7 +32,7 @@ pub fn run_solutions() -> Result(Nil, String) {
   |> int.to_string
   |> string.append("Problem 1 - Solution: ", _)
   |> io.println()
-  solution2(input, 100)
+  solution2(input, fn(x) { x >= 100 })
   |> int.to_string
   |> string.append("Problem 2 - Solution: ", _)
   |> io.println()
@@ -107,18 +109,18 @@ pub fn scan_path(
   )
 }
 
-pub fn solution2(input: Input, threshold: Int) -> Int {
+pub fn solution2(input: Input, condition: fn(Int) -> Bool) -> Int {
   let Input(race_track) = input
   let start =
     race_track
-    |> char_grid.position(fn(c) { c == "S" })
+    |> char_grid.position(fn(c) { c == "E" })
     |> result.lazy_unwrap(fn() { panic as "No start found" })
-  scan_path2(race_track, threshold, start, None, 0, 0, dict.new())
+  scan_path2(race_track, condition, start, None, 0, 0, dict.new())
 }
 
 pub fn scan_path2(
   race_track: CharGrid,
-  threshold: Int,
+  condition: fn(Int) -> Bool,
   coords: Coords,
   entry_direction: Option(Direction),
   step_counter: Int,
@@ -147,24 +149,35 @@ pub fn scan_path2(
             race_track,
             visited,
             step_counter,
-            threshold,
+            condition,
             [t.1] |> set.from_list,
             [Pivot(1, t.1)] |> deque.from_list,
             set.new(),
           )
         })
         |> list.reduce(set.union)
-        |> io.debug
+        |> fn(l) {
+          use <- bool.guard(!print_debug_output, l)
+          let assert Ok(rt) = race_track |> char_grid.set_tile(coords, "O")
+          l
+          |> result.unwrap(set.new())
+          |> set.map(fn(c) {
+            let assert Ok(rt) = rt |> char_grid.set_tile(c, "X")
+            io.println(rt |> char_grid.to_string)
+            io.println("")
+          })
+          l
+        }
         |> result.map(set.size)
         |> result.unwrap(0)
       _ -> 0
     }
   use <- bool.guard(
-    race_track |> char_grid.get_tile_unchecked(coords) == "E",
+    race_track |> char_grid.get_tile_unchecked(coords) == "S",
     cheat_counter,
   )
   let #(d, c) =
-    [".", "E"]
+    [".", "S"]
     |> list.filter_map(dict.get(surrounding, _))
     |> list.flatten
     |> list.first
@@ -172,7 +185,7 @@ pub fn scan_path2(
 
   scan_path2(
     race_track,
-    threshold,
+    condition,
     c,
     Some(d),
     step_counter + 1,
@@ -189,7 +202,7 @@ pub fn find_cheats(
   race_track: CharGrid,
   previous_steps: Dict(Coords, Int),
   step_counter: Int,
-  threshold: Int,
+  condition: fn(Int) -> Bool,
   visited: Set(Coords),
   queue: Deque(Pivot),
   acc: Set(Coords),
@@ -197,7 +210,6 @@ pub fn find_cheats(
   let front = queue |> deque.pop_front
   use <- bool.guard(front |> result.is_error, acc)
   let assert Ok(#(Pivot(cheat_step_counter, coords), queue)) = front
-  let assert Ok(tile) = race_track |> char_grid.get_tile(coords)
 
   let surrounding =
     direction.iter_non_diag()
@@ -213,15 +225,15 @@ pub fn find_cheats(
     })
 
   let cheat_coords =
-    [".", "S"]
+    [".", "E"]
     |> list.filter_map(dict.get(surrounding_grouped, _))
     |> list.flatten
     |> list.filter(fn(c) {
       case previous_steps |> dict.get(c) {
         Ok(prev_step_counter) -> {
-          let saved_time = step_counter - prev_step_counter - cheat_step_counter
-
-          saved_time >= threshold
+          let saved_time =
+            step_counter - prev_step_counter - cheat_step_counter - 1
+          condition(saved_time)
         }
         Error(_) -> {
           False
@@ -229,42 +241,20 @@ pub fn find_cheats(
       }
     })
 
-  // I think that would be nicer, but was not meant apperantly:
-  // let cheat_coords = case tile == "#" {
-  //   True -> {
-  //     [".", "S"]
-  //     |> list.filter_map(dict.get(surrounding_grouped, _))
-  //     |> list.flatten
-  //     |> list.filter(fn(c) {
-  //       case previous_steps |> dict.get(c) {
-  //         Ok(prev_step_counter) -> {
-  //           let saved_time =
-  //             step_counter - prev_step_counter - cheat_step_counter
-
-  //           saved_time >= threshold
-  //         }
-  //         Error(_) -> {
-  //           False
-  //         }
-  //       }
-  //     })
-  //   }
-  //   False -> []
-  // }
-
   let visited =
     visited
     |> set.union(surrounding |> set.from_list)
   let acc = acc |> set.union(cheat_coords |> set.from_list)
   let queue = case
     cheat_step_counter < 20,
-    [".", "S", "E", "#"]
+    [".", "S", "#"]
     |> list.filter_map(dict.get(surrounding_grouped, _))
     |> list.flatten
   {
     False, _ | _, [] -> queue
     _, walls ->
       walls
+      |> list.filter(fn(c) { previous_steps |> dict.get(c) |> result.is_error })
       |> list.fold(queue, fn(queue, c) {
         queue |> deque.push_back(Pivot(cheat_step_counter + 1, c))
       })
@@ -273,9 +263,8 @@ pub fn find_cheats(
     race_track,
     previous_steps,
     step_counter,
-    threshold,
-    visited
-      |> set.union(surrounding |> set.from_list),
+    condition,
+    visited,
     queue,
     acc,
   )
