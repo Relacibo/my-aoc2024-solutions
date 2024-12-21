@@ -13,7 +13,7 @@ import gleam/result
 import gleam/set.{type Set}
 import gleam/string
 
-const print_debug_output = True
+const print_debug_output = False
 
 pub const day_number_string = "day20"
 
@@ -141,37 +141,30 @@ pub fn scan_path2(
 
   let cheat_counter =
     cheat_counter
-    + case surrounding |> dict.get("#") {
-      Ok(cheat_candidates) ->
-        cheat_candidates
-        |> list.map(fn(t) {
-          find_cheats(
-            race_track,
-            visited,
-            step_counter,
-            condition,
-            [t.1] |> set.from_list,
-            [Pivot(1, t.1)] |> deque.from_list,
-            set.new(),
-          )
+    + {
+      find_cheats(
+        race_track,
+        visited,
+        step_counter,
+        condition,
+        [coords] |> set.from_list,
+        [Pivot(0, coords)] |> deque.from_list,
+        set.new(),
+      )
+      |> fn(l) {
+        use <- bool.guard(!print_debug_output, l)
+        let assert Ok(rt) = race_track |> char_grid.set_tile(coords, "O")
+        l
+        |> set.map(fn(c) {
+          let assert Ok(rt) = rt |> char_grid.set_tile(c, "X")
+          io.println(rt |> char_grid.to_string)
+          io.println("")
         })
-        |> list.reduce(set.union)
-        |> fn(l) {
-          use <- bool.guard(!print_debug_output, l)
-          let assert Ok(rt) = race_track |> char_grid.set_tile(coords, "O")
-          l
-          |> result.unwrap(set.new())
-          |> set.map(fn(c) {
-            let assert Ok(rt) = rt |> char_grid.set_tile(c, "X")
-            io.println(rt |> char_grid.to_string)
-            io.println("")
-          })
-          l
-        }
-        |> result.map(set.size)
-        |> result.unwrap(0)
-      _ -> 0
+        l
+      }
+      |> set.size
     }
+
   use <- bool.guard(
     race_track |> char_grid.get_tile_unchecked(coords) == "S",
     cheat_counter,
@@ -246,15 +239,14 @@ pub fn find_cheats(
     |> set.union(surrounding |> set.from_list)
   let acc = acc |> set.union(cheat_coords |> set.from_list)
   let queue = case
-    cheat_step_counter < 20,
-    [".", "S", "#"]
+    cheat_step_counter < 19,
+    [".", "E", "S", "#"]
     |> list.filter_map(dict.get(surrounding_grouped, _))
     |> list.flatten
   {
     False, _ | _, [] -> queue
     _, walls ->
       walls
-      |> list.filter(fn(c) { previous_steps |> dict.get(c) |> result.is_error })
       |> list.fold(queue, fn(queue, c) {
         queue |> deque.push_back(Pivot(cheat_step_counter + 1, c))
       })
