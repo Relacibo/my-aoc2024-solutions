@@ -19,6 +19,15 @@ pub fn new(width: Int, height: Int, init: String) -> CharGrid {
   CharGrid(content, width, height)
 }
 
+pub fn from_list(list: List(String), width: Int) -> CharGrid {
+  let height = { list |> list.length } / width
+  list
+  |> list.index_fold(new(width, height, ""), fn(acc, val, i) {
+    let assert Ok(acc) = set_tile_internal(acc, i, val)
+    acc
+  })
+}
+
 pub fn is_in_bounds(input: CharGrid, coords: Coords) -> Bool {
   let CharGrid(_, width, height) = input
   let Coords(x, y) = coords
@@ -30,26 +39,34 @@ pub fn set_tile(
   coords: Coords,
   val: String,
 ) -> Result(CharGrid, Nil) {
-  let CharGrid(content, width, height) = input
   case is_in_bounds(input, coords) {
     True -> {
       let index = coords_to_internal_index(input, coords)
-      use before <- result.try(bit_array.slice(content, 0, index))
-
-      let val = val |> bit_array.from_string
-
-      use <- bool.guard(val |> bit_array.byte_size != 1, Error(Nil))
-
-      let content = case
-        bit_array.slice(content, index + 1, height * width - index - 1)
-      {
-        Ok(after) -> <<before:bits, val:bits, after:bits>>
-        Error(_) -> <<before:bits, val:bits>>
-      }
-      Ok(CharGrid(content, width, height))
+      set_tile_internal(input, index, val)
     }
     False -> Error(Nil)
   }
+}
+
+fn set_tile_internal(
+  input: CharGrid,
+  index: Int,
+  val: String,
+) -> Result(CharGrid, Nil) {
+  let CharGrid(content, width, height) = input
+  use before <- result.try(bit_array.slice(content, 0, index))
+
+  let val = val |> bit_array.from_string
+
+  use <- bool.guard(val |> bit_array.byte_size != 1, Error(Nil))
+
+  let content = case
+    bit_array.slice(content, index + 1, height * width - index - 1)
+  {
+    Ok(after) -> <<before:bits, val:bits, after:bits>>
+    Error(_) -> <<before:bits, val:bits>>
+  }
+  Ok(CharGrid(content, width, height))
 }
 
 pub fn get_tile(input: CharGrid, coords: Coords) -> Result(String, Nil) {

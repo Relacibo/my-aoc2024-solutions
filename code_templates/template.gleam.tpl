@@ -1,10 +1,17 @@
+import char_grid.{type CharGrid, CharGrid}
+import coords.{type Coords, Coords}
+import direction.{type Direction}
+import gleam/bool
+import gleam/deque.{type Deque}
+import gleam/dict.{type Dict}
 import gleam/int
 import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
-import gleam/result
-import gleam/string
 import gleam/regexp
+import gleam/result
+import gleam/set.{type Set}
+import gleam/string
 import simplifile
 
 pub const day_number_string = "$DAY_NUMBER_STRING"
