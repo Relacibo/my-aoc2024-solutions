@@ -148,7 +148,7 @@ pub fn scan_path2(
         step_counter,
         condition,
         [coords] |> set.from_list,
-        [Pivot(0, coords)] |> deque.from_list,
+        [Pivot(1, coords)] |> deque.from_list,
         set.new(),
       )
       |> fn(l) {
@@ -224,8 +224,7 @@ pub fn find_cheats(
     |> list.filter(fn(c) {
       case previous_steps |> dict.get(c) {
         Ok(prev_step_counter) -> {
-          let saved_time =
-            step_counter - prev_step_counter - cheat_step_counter - 1
+          let saved_time = step_counter - prev_step_counter - cheat_step_counter
           condition(saved_time)
         }
         Error(_) -> {
@@ -239,7 +238,7 @@ pub fn find_cheats(
     |> set.union(surrounding |> set.from_list)
   let acc = acc |> set.union(cheat_coords |> set.from_list)
   let queue = case
-    cheat_step_counter < 19,
+    cheat_step_counter < 20,
     [".", "E", "S", "#"]
     |> list.filter_map(dict.get(surrounding_grouped, _))
     |> list.flatten
