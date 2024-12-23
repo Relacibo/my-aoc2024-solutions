@@ -75,38 +75,22 @@ pub fn apply_keyboard_to_last_output_n_times(
   graphemes: List(String),
   number_keys: Dict(String, Node),
   directional_keys: Dict(String, Node),
-  n: Int,
-) -> Int {
-  apply_keyboard_minimize_substr_with_first_level(
-    graphemes,
-    number_keys,
-    directional_keys,
-    n,
-  )
-}
-
-pub fn apply_keyboard_minimize_substr_with_first_level(
-  graphemes: List(String),
-  keys: Dict(String, Node),
-  directional_keys: Dict(String, Node),
-  level: Int,
+  directional_levels: Int,
 ) -> Int {
   glemo.init(["my_cache"])
-  let res = case level {
-    0 -> graphemes |> list.length
-    _ ->
-      split_into_instruction_sequences(graphemes)
+  let res =
+    split_into_instruction_sequences(graphemes)
+    |> list.map(fn(g) {
+      use_keyboard(g, number_keys, "A", [])
       |> list.map(fn(g) {
-        use_keyboard(g, keys, "A", [])
-        |> list.map(fn(g) {
-          apply_keyboard_minimize_substr(g, directional_keys, level)
-        })
+        apply_keyboard_minimize_substr(g, directional_keys, directional_levels)
       })
-      |> list.map(list.reduce(_, int.min))
-      |> result.all
-      |> result.lazy_unwrap(fn() { panic as "Empty sequence" })
-      |> int.sum
-  }
+    })
+    |> list.map(list.reduce(_, int.min))
+    |> result.all
+    |> result.lazy_unwrap(fn() { panic as "Empty sequence" })
+    |> int.sum
+
   glemo.invalidate_all("my_cache")
   res
 }
