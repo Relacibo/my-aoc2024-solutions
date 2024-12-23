@@ -14,6 +14,7 @@ import gleam/regexp
 import gleam/result
 import gleam/set.{type Set}
 import gleam/string
+import glemo
 import simplifile
 
 const print_debug_output = False
@@ -60,76 +61,111 @@ pub fn solution(input: Input, times: Int) -> Int {
     let num2 =
       comb
       |> string.to_graphemes
-      |> use_keyboard(number_keyboard, [])
-      |> apply_keyboard_to_last_output_n_times(direction_keyboard, times)
-      |> list.sort(fn(x1, x2) { int.compare(list.length(x1), list.length(x2)) })
-      |> list.first()
-      |> result.unwrap([])
-      |> fn(x) {
-        use <- bool.guard(!print_debug_output, x)
-        io.debug(
-          comb
-          <> ": "
-          <> {
-            x
-            |> list.reverse
-            |> string.concat
-          },
-        )
-        x
-      }
-      |> list.length
+      |> apply_keyboard_to_last_output_n_times(
+        number_keyboard,
+        direction_keyboard,
+        times,
+      )
     num1 * num2
   })
   |> int.sum
 }
 
-pub fn apply_keyboard_to_last_output(
-  val: List(List(String)),
-  keyboard: Keyboard,
+pub fn apply_keyboard_to_last_output_n_times(
+  graphemes: List(String),
+  number_keys: Dict(String, Node),
+  directional_keys: Dict(String, Node),
+  n: Int,
+) -> Int {
+  apply_keyboard_minimize_substr_first_level(
+    graphemes,
+    number_keys,
+    directional_keys,
+    n,
+  )
+}
+
+pub fn apply_keyboard_minimize_substr_first_level(
+  graphemes: List(String),
+  keys: Dict(String, Node),
+  directional_keys: Dict(String, Node),
+  level: Int,
+) -> Int {
+  glemo.init(["my_cache"])
+  let res = case level {
+    0 -> graphemes |> list.length
+    _ ->
+      split_into_instruction_sequences(graphemes)
+      |> list.map(fn(g) {
+        use_keyboard(g, keys, "A", [])
+        |> list.map(fn(g) {
+          apply_keyboard_minimize_substr(g, directional_keys, level)
+        })
+      })
+      |> list.map(list.reduce(_, int.min))
+      |> result.all
+      |> result.lazy_unwrap(fn() { panic as "Empty sequence" })
+      |> int.sum
+  }
+  glemo.invalidate_all("my_cache")
+  res
+}
+
+pub fn apply_keyboard_minimize_substr(
+  graphemes: List(String),
+  keys: Dict(String, Node),
+  level: Int,
+) -> Int {
+  glemo.memo(#(graphemes, level), "my_cache", fn(t) {
+    let #(g, l) = t
+    apply_keyboard_minimize_substr_not_memo(g, keys, l)
+  })
+}
+
+pub fn apply_keyboard_minimize_substr_not_memo(
+  graphemes: List(String),
+  keys: Dict(String, Node),
+  level: Int,
+) -> Int {
+  case level {
+    0 -> graphemes |> list.length
+    _ ->
+      split_into_instruction_sequences(graphemes)
+      |> list.map(fn(g) {
+        use_keyboard(g, keys, "A", [])
+        |> list.map(fn(g) { apply_keyboard_minimize_substr(g, keys, level - 1) })
+      })
+      |> list.map(list.reduce(_, int.min))
+      |> result.all
+      |> result.lazy_unwrap(fn() { panic as "Empty sequence" })
+      |> int.sum
+  }
+}
+
+pub fn split_into_instruction_sequences(
+  graphemes: List(String),
 ) -> List(List(String)) {
   {
-    val
-    |> list.flat_map(fn(x) { use_keyboard(x |> list.reverse, keyboard, []) })
-    |> list.fold(#([], None), fn(acc, x) {
-      let #(l, min_size) = acc
-      let len = x |> list.length
-      case min_size {
-        None -> #([x], Some(len))
-        Some(min) ->
-          case int.compare(len, min) {
-            Lt -> #([x], Some(len))
-            Eq -> #([x, ..l], min_size)
-            _ -> acc
-          }
+    graphemes
+    |> list.fold(#([], []), fn(acc, x) {
+      let #(collected, current) = acc
+      case x {
+        "A" -> #([[x, ..current] |> list.reverse, ..collected], [])
+        x -> #(collected, [x, ..current])
       }
     })
   }.0
 }
 
-pub fn apply_keyboard_to_last_output_n_times(
-  acc: List(List(String)),
-  keyboard: Keyboard,
-  n: Int,
-) -> List(List(String)) {
-  case n {
-    0 -> acc
-    n -> {
-      let out = apply_keyboard_to_last_output(acc, keyboard)
-      apply_keyboard_to_last_output_n_times(out, keyboard, n - 1)
-    }
-  }
-}
-
 pub fn use_keyboard(
-  val: List(String),
-  keyboard: Keyboard,
+  graphemes: List(String),
+  keys: Dict(String, Node),
+  current_key: String,
   acc: List(List(String)),
 ) -> List(List(String)) {
-  case val {
-    [] -> acc
+  case graphemes {
+    [] -> acc |> list.map(list.reverse(_))
     [l, ..ls] -> {
-      let Keyboard(current_key, keys) = keyboard
       let node =
         keys
         |> dict.get(current_key)
@@ -167,7 +203,7 @@ pub fn use_keyboard(
             |> list.flatten
           })
       }
-      use_keyboard(ls, Keyboard(l, keys), acc)
+      use_keyboard(ls, keys, l, acc)
     }
   }
 }
@@ -194,19 +230,19 @@ pub type Keyboard {
   Keyboard(current_key: String, keys: Dict(String, Node))
 }
 
-pub fn create_number_keyboard() -> Keyboard {
+pub fn create_number_keyboard() -> Dict(String, Node) {
   ["7", "8", "9", "4", "5", "6", "1", "2", "3", " ", "0", "A"]
   |> char_grid.from_list(3)
   |> build_keyboard_from_char_grid
 }
 
-pub fn create_direction_keyboard() -> Keyboard {
+pub fn create_direction_keyboard() -> Dict(String, Node) {
   [" ", "^", "A", "<", "v", ">"]
   |> char_grid.from_list(3)
   |> build_keyboard_from_char_grid
 }
 
-pub fn build_keyboard_from_char_grid(grid: CharGrid) -> Keyboard {
+pub fn build_keyboard_from_char_grid(grid: CharGrid) -> Dict(String, Node) {
   grid
   |> char_grid.coords_fold(dict.new(), fn(acc, key, coords) {
     use <- bool.guard(key == " ", acc)
@@ -220,7 +256,6 @@ pub fn build_keyboard_from_char_grid(grid: CharGrid) -> Keyboard {
       )
     acc |> dict.insert(key, Node(key, other_keys))
   })
-  |> Keyboard("A", _)
 }
 
 pub fn find_paths(
