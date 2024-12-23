@@ -77,7 +77,7 @@ pub fn apply_keyboard_to_last_output_n_times(
   directional_keys: Dict(String, Node),
   n: Int,
 ) -> Int {
-  apply_keyboard_minimize_substr_first_level(
+  apply_keyboard_minimize_substr_with_first_level(
     graphemes,
     number_keys,
     directional_keys,
@@ -85,7 +85,7 @@ pub fn apply_keyboard_to_last_output_n_times(
   )
 }
 
-pub fn apply_keyboard_minimize_substr_first_level(
+pub fn apply_keyboard_minimize_substr_with_first_level(
   graphemes: List(String),
   keys: Dict(String, Node),
   directional_keys: Dict(String, Node),
