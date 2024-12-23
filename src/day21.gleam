@@ -185,13 +185,13 @@ pub fn use_keyboard(
           |> list.map(fn(x) { ["A", ..x] })
         ops, [] ->
           ops
-          |> list.fold(list.new(), fn(l, ops) {
+          |> list.fold([], fn(l, ops) {
             let a = create_op_string(ops)
             [["A", ..a], ..l]
           })
         ops, acc ->
           ops
-          |> list.fold(list.new(), fn(l, ops) {
+          |> list.fold([], fn(l, ops) {
             let a = create_op_string(ops)
             [
               {
