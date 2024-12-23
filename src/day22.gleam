@@ -43,12 +43,11 @@ pub fn run_solutions() -> Result(Nil, String) {
 
 pub fn solution1(input: Input) -> Int {
   let Input(starting_numbers) = input
-  starting_numbers |> list.map(repeat(_, apply_ops, 2000)) |> int.sum
-}
-
-pub fn repeat(val: a, f: fn(a) -> a, times: Int) -> a {
-  use <- bool.guard(times == 0, val)
-  repeat(f(val), f, times - 1)
+  starting_numbers
+  |> list.map(fn(x) {
+    list.range(1, 2000) |> list.fold(x, fn(acc, _) { apply_ops(acc) })
+  })
+  |> int.sum
 }
 
 pub fn apply_ops(secret_number: Int) -> Int {
@@ -60,7 +59,32 @@ pub fn apply_ops(secret_number: Int) -> Int {
 }
 
 pub fn solution2(input: Input) -> Int {
-  todo
+  let Input(starting_numbers) = input
+  starting_numbers
+  |> list.map(fn(x) {
+    let prices =
+      [
+        x,
+        ..list.range(1, 2000)
+        |> list.scan(x, fn(acc, _) { apply_ops(acc) })
+      ]
+      |> list.map(fn(x) { x % 10 })
+    prices
+    |> list.window(5)
+    |> list.map(fn(x) {
+      x
+      |> list.window_by_2()
+      |> list.map(fn(x) { x.1 - x.0 })
+    })
+    |> list.zip(prices |> list.drop(4))
+    |> list.reverse
+    |> dict.from_list
+  })
+  |> list.reduce(fn(d1, d2) { dict.combine(d1, d2, fn(v1, v2) { v1 + v2 }) })
+  |> result.lazy_unwrap(fn() { panic as "Expected dicts" })
+  |> dict.values
+  |> list.reduce(int.max)
+  |> result.lazy_unwrap(fn() { panic as "No max value found" })
 }
 
 pub type Input {
