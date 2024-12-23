@@ -1,6 +1,7 @@
 import char_grid.{type CharGrid, CharGrid}
 import coords.{type Coords, Coords}
-import direction.{type Direction}
+import dict_util
+import direction.{type Direction, East, North, South, West}
 import gleam/bool
 import gleam/deque.{type Deque}
 import gleam/dict.{type Dict}
@@ -8,6 +9,7 @@ import gleam/int
 import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/order.{type Order, Eq, Gt, Lt}
 import gleam/regexp
 import gleam/result
 import gleam/set.{type Set}

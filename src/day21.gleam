@@ -9,13 +9,14 @@ import gleam/int
 import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/order.{type Order, Eq, Gt, Lt}
 import gleam/regexp
 import gleam/result
 import gleam/set.{type Set}
 import gleam/string
 import simplifile
 
-const print_debug_output = True
+const print_debug_output = False
 
 pub const day_number_string = "day21"
 
@@ -42,6 +43,10 @@ pub fn run_solutions() -> Result(Nil, String) {
 }
 
 pub fn solution1(input: Input) -> Int {
+  solution(input, 2)
+}
+
+pub fn solution(input: Input, times: Int) -> Int {
   let Input(combinations) = input
   let number_keyboard = create_number_keyboard()
   let direction_keyboard = create_direction_keyboard()
@@ -56,12 +61,7 @@ pub fn solution1(input: Input) -> Int {
       comb
       |> string.to_graphemes
       |> use_keyboard(number_keyboard, [])
-      |> list.flat_map(fn(x) {
-        use_keyboard(x |> list.reverse, direction_keyboard, [])
-      })
-      |> list.flat_map(fn(x) {
-        use_keyboard(x |> list.reverse, direction_keyboard, [])
-      })
+      |> apply_keyboard_to_last_output_n_times(direction_keyboard, times)
       |> list.sort(fn(x1, x2) { int.compare(list.length(x1), list.length(x2)) })
       |> list.first()
       |> result.unwrap([])
@@ -82,6 +82,43 @@ pub fn solution1(input: Input) -> Int {
     num1 * num2
   })
   |> int.sum
+}
+
+pub fn apply_keyboard_to_last_output(
+  val: List(List(String)),
+  keyboard: Keyboard,
+) -> List(List(String)) {
+  {
+    val
+    |> list.flat_map(fn(x) { use_keyboard(x |> list.reverse, keyboard, []) })
+    |> list.fold(#([], None), fn(acc, x) {
+      let #(l, min_size) = acc
+      let len = x |> list.length
+      case min_size {
+        None -> #([x], Some(len))
+        Some(min) ->
+          case int.compare(len, min) {
+            Lt -> #([x], Some(len))
+            Eq -> #([x, ..l], min_size)
+            _ -> acc
+          }
+      }
+    })
+  }.0
+}
+
+pub fn apply_keyboard_to_last_output_n_times(
+  acc: List(List(String)),
+  keyboard: Keyboard,
+  n: Int,
+) -> List(List(String)) {
+  case n {
+    0 -> acc
+    n -> {
+      let out = apply_keyboard_to_last_output(acc, keyboard)
+      apply_keyboard_to_last_output_n_times(out, keyboard, n - 1)
+    }
+  }
 }
 
 pub fn use_keyboard(
@@ -250,7 +287,7 @@ pub type Pivot {
 }
 
 pub fn solution2(input: Input) -> Int {
-  todo
+  solution(input, 25)
 }
 
 pub type Input {
