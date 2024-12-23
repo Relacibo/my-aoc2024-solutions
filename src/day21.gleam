@@ -1,5 +1,6 @@
 import char_grid.{type CharGrid, CharGrid}
 import coords.{type Coords, Coords}
+import dict_util
 import direction.{type Direction, East, North, South, West}
 import gleam/bool
 import gleam/deque.{type Deque}
@@ -55,11 +56,24 @@ pub fn solution1(input: Input) -> Int {
       comb
       |> string.to_graphemes
       |> use_keyboard(number_keyboard, [])
+      |> list.first
+      |> result.unwrap([])
       |> use_keyboard(direction_keyboard, [])
-      // |> use_keyboard(direction_keyboard, [])
+      |> list.flat_map(use_keyboard(_, direction_keyboard, []))
+      |> list.sort(fn(x1, x2) { int.compare(list.length(x1), list.length(x2)) })
+      |> list.first()
+      |> result.unwrap([])
       |> fn(x) {
         use <- bool.guard(!print_debug_output, x)
-        io.debug(comb <> ": " <> string.concat(x))
+        io.debug(
+          comb
+          <> ": "
+          <> {
+            x
+            |> list.reverse
+            |> string.concat
+          },
+        )
         x
       }
       |> list.length
@@ -71,8 +85,8 @@ pub fn solution1(input: Input) -> Int {
 pub fn use_keyboard(
   val: List(String),
   keyboard: Keyboard,
-  acc: List(String),
-) -> List(String) {
+  acc: List(List(String)),
+) -> List(List(String)) {
   case val {
     [] -> acc
     [l, ..ls] -> {
@@ -88,12 +102,39 @@ pub fn use_keyboard(
         other_nodes
         |> dict.get(l)
         |> result.unwrap([])
-      let str =
-        [acc, { ops |> list.map(direction_to_op) }, ["A"]]
-        |> list.flatten
-      use_keyboard(ls, Keyboard(l, keys), str)
+      let acc = case ops {
+        [] ->
+          case acc {
+            [] -> [["A"]]
+            acc ->
+              acc
+              |> list.map(fn(x) { ["A", ..x] })
+          }
+        ops ->
+          ops
+          |> list.fold(list.new(), fn(l, ops) {
+            let a = create_op_string(ops)
+            case acc {
+              [] -> [["A", ..a], ..l]
+              acc ->
+                [
+                  {
+                    acc
+                    |> list.map(fn(x) { ["A", ..{ [a, x] |> list.flatten }] })
+                  },
+                  l,
+                ]
+                |> list.flatten
+            }
+          })
+      }
+      use_keyboard(ls, Keyboard(l, keys), acc)
     }
   }
+}
+
+pub fn create_op_string(ops: List(Direction)) -> List(String) {
+  ops |> list.map(direction_to_op)
 }
 
 pub fn direction_to_op(dir: Direction) -> String {
@@ -107,7 +148,7 @@ pub fn direction_to_op(dir: Direction) -> String {
 }
 
 pub type Node {
-  Node(id: String, other_nodes: Dict(String, List(Direction)))
+  Node(id: String, other_nodes: Dict(String, List(List(Direction))))
 }
 
 pub type Keyboard {
@@ -133,8 +174,9 @@ pub fn build_keyboard_from_char_grid(grid: CharGrid) -> Keyboard {
     let other_keys =
       find_paths(
         grid,
-        [coords] |> set.from_list,
-        [Pivot(coords, [], West)] |> deque.from_list,
+        coords,
+        [Pivot(coords, [])] |> deque.from_list,
+        dict.new(),
         dict.new(),
       )
     acc |> dict.insert(key, Node(key, other_keys))
@@ -144,75 +186,65 @@ pub fn build_keyboard_from_char_grid(grid: CharGrid) -> Keyboard {
 
 pub fn find_paths(
   grid: CharGrid,
-  visited: Set(Coords),
+  starting_coords: Coords,
   queue: Deque(Pivot),
-  acc: Dict(String, List(Direction)),
-) -> Dict(String, List(Direction)) {
+  shortest_distances: Dict(String, Int),
+  acc: Dict(String, List(List(Direction))),
+) -> Dict(String, List(List(Direction))) {
   let front = queue |> deque.pop_front
   use <- bool.guard(front |> result.is_error, acc)
-  let assert Ok(#(Pivot(coords, ops, last_direction), queue)) = front
+  let assert Ok(#(Pivot(coords, ops), queue)) = front
 
   let next =
-    last_direction
-    |> iter_non_diag_starting_at
+    direction.iter_non_diag()
     |> list.map(fn(d) { #(d, coords.move_in_direction(coords, d)) })
     |> list.filter_map(fn(t) {
       let #(d, c) = t
-      use <- bool.guard(set.contains(visited, c), Error(Nil))
-      case grid |> char_grid.get_tile(c) {
-        Ok(" ") -> Error(Nil)
-        Ok(l) -> Ok(#(c, l, ops |> list.append([d]), d))
-        _ -> Error(Nil)
+      use <- bool.guard(starting_coords == c, Error(Nil))
+      use tile <- result.try(
+        grid
+        |> char_grid.get_tile(c)
+        |> result.try(fn(l) {
+          use <- bool.guard(l == " ", Error(Nil))
+          Ok(l)
+        }),
+      )
+      let ops_len = { ops |> list.length } + 1
+      let is_bigger = case shortest_distances |> dict.get(tile) {
+        Ok(n) if ops_len > n -> True
+        _ -> False
       }
+      use <- bool.guard(is_bigger, Error(Nil))
+      let ops = [d, ..ops]
+      Ok(#(c, tile, ops))
+    })
+
+  let shortest_distances =
+    next
+    |> list.fold(shortest_distances, fn(acc, t) {
+      let #(_, tile, ops) = t
+      acc |> dict.insert(tile, ops |> list.length)
     })
 
   let acc =
     next
     |> list.fold(acc, fn(acc, n) {
-      let #(_, l, ops, _) = n
+      let #(_, l, ops) = n
       acc
-      |> dict.insert(l, ops)
+      |> dict_util.merge([#(l, [ops])] |> dict.from_list)
     })
-  let visited =
-    visited |> set.union(next |> list.map(fn(t) { t.0 }) |> set.from_list)
 
   let queue =
     next
     |> list.fold(queue, fn(queue, t) {
-      let #(c, _, ops, d) = t
-      queue |> deque.push_back(Pivot(c, ops, d))
+      let #(c, _, ops) = t
+      queue |> deque.push_back(Pivot(c, ops))
     })
-  find_paths(grid, visited, queue, acc)
-}
-
-pub fn to_number_non_diag(dir: Direction) -> Int {
-  case dir {
-    West -> 0
-    South -> 1
-    East -> 2
-    North -> 3
-    _ -> panic as "Direction not supported"
-  }
-}
-
-pub fn from_number_non_diag(num: Int) -> Direction {
-  case num {
-    0 -> West
-    1 -> South
-    2 -> East
-    3 -> North
-    _ -> panic as "Direction not supported"
-  }
-}
-
-pub fn iter_non_diag_starting_at(dir: Direction) -> List(Direction) {
-  let offset = dir |> to_number_non_diag
-  list.range(0, 3)
-  |> list.map(fn(i) { from_number_non_diag({ i + offset } % 4) })
+  find_paths(grid, starting_coords, queue, shortest_distances, acc)
 }
 
 pub type Pivot {
-  Pivot(coords: Coords, ops: List(Direction), last_dir: Direction)
+  Pivot(coords: Coords, ops: List(Direction))
 }
 
 pub fn solution2(input: Input) -> Int {
