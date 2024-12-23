@@ -56,10 +56,12 @@ pub fn solution1(input: Input) -> Int {
       comb
       |> string.to_graphemes
       |> use_keyboard(number_keyboard, [])
-      |> list.first
-      |> result.unwrap([])
-      |> use_keyboard(direction_keyboard, [])
-      |> list.flat_map(use_keyboard(_, direction_keyboard, []))
+      |> list.flat_map(fn(x) {
+        use_keyboard(x |> list.reverse, direction_keyboard, [])
+      })
+      |> list.flat_map(fn(x) {
+        use_keyboard(x |> list.reverse, direction_keyboard, [])
+      })
       |> list.sort(fn(x1, x2) { int.compare(list.length(x1), list.length(x2)) })
       |> list.first()
       |> result.unwrap([])
@@ -102,30 +104,30 @@ pub fn use_keyboard(
         other_nodes
         |> dict.get(l)
         |> result.unwrap([])
-      let acc = case ops {
-        [] ->
-          case acc {
-            [] -> [["A"]]
-            acc ->
-              acc
-              |> list.map(fn(x) { ["A", ..x] })
-          }
-        ops ->
+
+      let acc = case ops, acc {
+        [], [] -> [["A"]]
+        [], acc ->
+          acc
+          |> list.map(fn(x) { ["A", ..x] })
+        ops, [] ->
           ops
           |> list.fold(list.new(), fn(l, ops) {
             let a = create_op_string(ops)
-            case acc {
-              [] -> [["A", ..a], ..l]
-              acc ->
-                [
-                  {
-                    acc
-                    |> list.map(fn(x) { ["A", ..{ [a, x] |> list.flatten }] })
-                  },
-                  l,
-                ]
-                |> list.flatten
-            }
+            [["A", ..a], ..l]
+          })
+        ops, acc ->
+          ops
+          |> list.fold(list.new(), fn(l, ops) {
+            let a = create_op_string(ops)
+            [
+              {
+                acc
+                |> list.map(fn(x) { ["A", ..{ [a, x] |> list.flatten }] })
+              },
+              l,
+            ]
+            |> list.flatten
           })
       }
       use_keyboard(ls, Keyboard(l, keys), acc)
