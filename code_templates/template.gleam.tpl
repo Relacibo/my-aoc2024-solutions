@@ -5,9 +5,10 @@ import direction.{type Direction, East, North, South, West}
 import gleam/bool
 import gleam/deque.{type Deque}
 import gleam/dict.{type Dict}
+import gleam/function
 import gleam/int
 import gleam/io
-import gleam/list
+import gleam/list.{Continue, Stop}
 import gleam/option.{type Option, None, Some}
 import gleam/order.{type Order, Eq, Gt, Lt}
 import gleam/regexp
