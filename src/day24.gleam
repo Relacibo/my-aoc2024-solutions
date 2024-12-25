@@ -52,6 +52,11 @@ pub fn solution2(input: Input) -> Int {
   todo
 }
 
+pub type Node {
+  Node(op: Operation, children: List(Node))
+  Leaf(id: Id)
+}
+
 pub fn solve_z(ops: Dict(Id, Operation)) -> Int {
   list.range(0, 64)
   |> list.map(fn(x) { Id("z", Some(x)) })
@@ -111,6 +116,16 @@ pub fn parse_id(val: String) -> Id {
     |> option.from_result
   let id = id |> string.concat
   Id(id, number)
+}
+
+pub fn id_to_string(id: Id) -> String {
+  let Id(id, number) = id
+  id
+  <> {
+    number
+    |> option.map(fn(x) { x |> int.to_string |> string.pad_start(2, "0") })
+    |> option.unwrap("")
+  }
 }
 
 pub type BinaryOp {
