@@ -8,6 +8,7 @@ import gleam/dict.{type Dict}
 import gleam/function
 import gleam/int
 import gleam/io
+import gleam/iterator
 import gleam/list.{Continue, Stop}
 import gleam/option.{type Option, None, Some}
 import gleam/order.{type Order, Eq, Gt, Lt}
@@ -43,7 +44,7 @@ pub fn run_solutions() -> Result(Nil, String) {
 
 pub fn solution1(input: Input) -> Int {
   let Input(initial, ops) = input
-  let lookup = build_lookup(initial, ops) |> solve_z
+  build_lookup(initial, ops) |> solve_z
 }
 
 pub fn solution2(input: Input) -> Int {
@@ -51,8 +52,13 @@ pub fn solution2(input: Input) -> Int {
 }
 
 pub fn solve_z(ops: Dict(Id, Operation)) -> Int {
-  list.range(32, 0)
-  |> list.filter_map(fn(x) { solve(Id("z", Some(x)), ops) })
+  list.range(0, 64)
+  |> list.map(fn(x) { Id("z", Some(x)) })
+  |> list.take_while(fn(x) { ops |> dict.get(x) |> result.is_ok })
+  |> list.reverse
+  |> list.map(fn(x) { solve(x, ops) })
+  |> result.all
+  |> result.lazy_unwrap(fn() { panic as "Error happened" })
   |> list.fold(0, fn(acc, x) {
     int.bitwise_or(acc |> int.bitwise_shift_left(1), x |> bool.to_int)
   })
@@ -124,7 +130,7 @@ pub fn read_input(path: String) -> Result(Input, String) {
   )
   let assert [part_a, part_b] =
     content
-    |> string.split("\n^\n")
+    |> string.split("\n\n")
     |> list.filter(fn(s) { !string.is_empty(s) })
   let initial =
     part_a
