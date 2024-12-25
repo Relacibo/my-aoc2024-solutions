@@ -42,23 +42,54 @@ pub fn run_solutions() -> Result(Nil, String) {
 }
 
 pub fn solution1(input: Input) -> Int {
-  todo
+  let Input(initial, ops) = input
+  let lookup = build_lookup(initial, ops) |> solve_z
 }
 
 pub fn solution2(input: Input) -> Int {
   todo
 }
 
+pub fn solve_z(ops: Dict(Id, Operation)) -> Int {
+  list.range(32, 0)
+  |> list.filter_map(fn(x) { solve(Id("z", Some(x)), ops) })
+  |> list.fold(0, fn(acc, x) {
+    int.bitwise_or(acc |> int.bitwise_shift_left(1), x |> bool.to_int)
+  })
+}
+
+pub fn solve(id: Id, ops: Dict(Id, Operation)) -> Result(Bool, Nil) {
+  use op <- result.try(ops |> dict.get(id))
+  case op {
+    Binary(_, op, a, b) -> {
+      use a <- result.try(solve(a, ops))
+      use b <- result.try(solve(b, ops))
+      let op = case op {
+        Xor -> bool.exclusive_or
+        Or -> bool.or
+        And -> bool.and
+      }
+      Ok(op(a, b))
+    }
+    Initial(_, val) -> Ok(val)
+  }
+}
+
+pub fn build_lookup(
+  initial: List(Operation),
+  input: List(Operation),
+) -> Dict(Id, Operation) {
+  [initial, input]
+  |> list.flatten
+  |> list.fold(dict.new(), fn(acc, op) { acc |> dict.insert(op.res, op) })
+}
+
 pub type Input {
-  Input(initial: Dict(Id, Bool), ops: List(Operation))
+  Input(initial: List(Operation), ops: List(Operation))
 }
 
 pub type Id {
   Id(id: String, number: Option(Int))
-}
-
-pub type Unsolved {
-  Unsolved(op: Operation, a: Option(Bool), b: Option(Bool))
 }
 
 pub fn parse_id(val: String) -> Id {
@@ -75,10 +106,15 @@ pub fn parse_id(val: String) -> Id {
   Id(id, number)
 }
 
+pub type BinaryOp {
+  Xor
+  And
+  Or
+}
+
 pub type Operation {
-  Xor(a: Id, b: Id, res: Id)
-  And(a: Id, b: Id, res: Id)
-  Or(a: Id, b: Id, res: Id)
+  Binary(res: Id, op: BinaryOp, a: Id, b: Id)
+  Initial(res: Id, val: Bool)
 }
 
 pub fn read_input(path: String) -> Result(Input, String) {
@@ -103,9 +139,8 @@ pub fn read_input(path: String) -> Result(Input, String) {
         "1" -> True
         _ -> panic as "Input broken!"
       }
-      #(a |> parse_id, value)
+      Initial(a |> parse_id, value)
     })
-    |> dict.from_list
 
   let options = regexp.Options(case_insensitive: False, multi_line: True)
   let assert Ok(regex) =
@@ -121,9 +156,9 @@ pub fn read_input(path: String) -> Result(Input, String) {
       let assert [a, b, res] = [a, b, res] |> list.map(parse_id)
 
       case op {
-        "XOR" -> Xor(a, b, res)
-        "OR" -> Or(a, b, res)
-        "AND" -> And(a, b, res)
+        "XOR" -> Binary(res, Xor, a, b)
+        "OR" -> Binary(res, Or, a, b)
+        "AND" -> Binary(res, And, a, b)
         _ -> panic as "unexpected operation"
       }
     })

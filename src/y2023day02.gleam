@@ -102,7 +102,7 @@ pub fn read_input(path: String) -> Result(Input, String) {
             "blue" -> GamePart(red, num, green)
             "green" -> GamePart(red, blue, num)
             _ -> {
-              panic
+              panic as "Color not supported"
             }
           }
         })
