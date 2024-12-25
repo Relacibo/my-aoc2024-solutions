@@ -50,7 +50,35 @@ pub fn solution2(input: Input) -> Int {
 }
 
 pub type Input {
-  Input
+  Input(initial: Dict(Id, Bool), ops: List(Operation))
+}
+
+pub type Id {
+  Id(id: String, number: Option(Int))
+}
+
+pub type Unsolved {
+  Unsolved(op: Operation, a: Option(Bool), b: Option(Bool))
+}
+
+pub fn parse_id(val: String) -> Id {
+  let #(id, letter_string) =
+    val
+    |> string.to_graphemes
+    |> list.split_while(fn(num) { int.parse(num) |> result.is_error })
+  let number =
+    letter_string
+    |> string.concat
+    |> int.parse
+    |> option.from_result
+  let id = id |> string.concat
+  Id(id, number)
+}
+
+pub type Operation {
+  Xor(a: Id, b: Id, res: Id)
+  And(a: Id, b: Id, res: Id)
+  Or(a: Id, b: Id, res: Id)
 }
 
 pub fn read_input(path: String) -> Result(Input, String) {
@@ -58,25 +86,46 @@ pub fn read_input(path: String) -> Result(Input, String) {
     simplifile.read(path)
     |> result.map_error(fn(_) { "Could not read file" }),
   )
-  let assert [a, b] =
+  let assert [part_a, part_b] =
     content
     |> string.split("\n^\n")
     |> list.filter(fn(s) { !string.is_empty(s) })
-  a |> string.split("\n") |> list.map(fn() { todo })
+  let initial =
+    part_a
+    |> string.split("\n")
+    |> list.map(fn(s) {
+      let assert [a, b] =
+        s
+        |> string.split(": ")
+
+      let value = case b {
+        "0" -> False
+        "1" -> True
+        _ -> panic as "Input broken!"
+      }
+      #(a |> parse_id, value)
+    })
+    |> dict.from_list
+
   let options = regexp.Options(case_insensitive: False, multi_line: True)
-  let assert Ok(regex) = regexp.compile("^$", options)
-  regex
-  |> regexp.scan(content)
-  |> list.map(fn(m) {
-    let sm =
-      m.submatches
-      |> list.map(fn(n) {
-        let assert Some(n) = n
-        let assert Ok(i) = int.parse(n)
-        i
-      })
-    todo
-  })
-  |> Input
-  |> Ok
+  let assert Ok(regex) =
+    regexp.compile("^([^ ]+) (X?OR|AND) ([^ ]+) -> ([^ ]+)$", options)
+  let ops =
+    regex
+    |> regexp.scan(part_b)
+    |> list.map(fn(m) {
+      let assert [a, op, b, res] =
+        m.submatches
+        |> list.map(option.lazy_unwrap(_, fn() { panic as "regex didnt match" }))
+
+      let assert [a, b, res] = [a, b, res] |> list.map(parse_id)
+
+      case op {
+        "XOR" -> Xor(a, b, res)
+        "OR" -> Or(a, b, res)
+        "AND" -> And(a, b, res)
+        _ -> panic as "unexpected operation"
+      }
+    })
+  Ok(Input(initial, ops))
 }
