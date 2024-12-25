@@ -48,6 +48,7 @@ pub fn solution1(input: Input) -> Int {
 }
 
 pub fn solution2(input: Input) -> Int {
+  let Input(initial, ops) = input
   todo
 }
 
